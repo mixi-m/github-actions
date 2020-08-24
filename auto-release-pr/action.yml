@@ -4,6 +4,21 @@ inputs:
   githubToken:
     description: GitHub Token
     required: true
+  baseBranch:
+    description: |
+      The base branch of Pull Request to find.
+      It will be ignored if `releasePRNumber` is passed.
+    required: true
+    default: release
+  headBranch:
+    description: |
+      The head branch of Pull Request to find.
+      It will be ignored if `releasePRNumber` is passed.
+    required: true
+    default: master
+  releasePRNumber:
+    description: The number of release Pull Request.
+    required: false
 runs:
   using: "docker"
   image: "Dockerfile"

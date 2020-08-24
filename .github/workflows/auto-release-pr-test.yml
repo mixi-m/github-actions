@@ -1,6 +1,6 @@
 name: Test auto-release-pr
 on:
-  push:
+  pull_request:
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -9,3 +9,4 @@ jobs:
       - uses: ./auto-release-pr
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          releasePRNumber: ${{ github.event.pull_request.number }}
