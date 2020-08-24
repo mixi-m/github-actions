@@ -7,8 +7,8 @@ import re
 import sys
 
 
-GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
-REPO_NAME = os.environ['REPO_NAME']
+GITHUB_TOKEN = os.environ['INPUT_GITHUBTOKEN']
+REPO_NAME = os.environ['GITHUB_REPOSITORY']
 
 COMMENT_TEMPLATE = '''PR body is updated!
 <details><summary>diff</summary>
