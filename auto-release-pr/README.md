@@ -12,9 +12,11 @@
 | パラメータ | Required | Default | |
 |-|-|-|-|
 | `githubToken` | ✔ | | GitHub Token。PRの探索や更新に利用されます。 |
-| `baseBranch` | ✔ | `release` | リリースPRのBase Branch。PRの探索や作成時に利用されます。 |
-| `headBranch` | ✔ | `master` | リリースPRのHead Branch。PRの探索や作成時に利用されます。 |
+| `baseBranch` | | `release` | リリースPRのBase Branch。PRの探索や作成時に利用されます。 |
+| `headBranch` | | `master` | リリースPRのHead Branch。PRの探索や作成時に利用されます。 |
 | `releasePRNumber` | | | リリースPRの番号。 `releasePRNumber` が指定されると `baseBranch`/`headBranch` は無視されます。 |
+| `bodyTemplate` | | [`action.yml`](https://github.com/ratel-pay/github-actions/blob/master/auto-release-pr/action.yml) を参照 | PR本文の生成テンプレート。テンプレート内の `{summary}` が差分の箇条書きに置き換えられます。 |
+| `commentTemplate` | | [`action.yml`](https://github.com/ratel-pay/github-actions/blob/master/auto-release-pr/action.yml) を参照 | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に置き換えられます。 |
 
 ## Usage
 

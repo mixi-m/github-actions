@@ -13,18 +13,8 @@ BASE_BRANCH: str = os.environ['INPUT_BASEBRANCH']
 HEAD_BRANCH: str = os.environ['INPUT_HEADBRANCH']
 RELEASE_PR_NUMBER: Optional[str] = os.environ.get('INPUT_RELEASEPRNUMBER')
 
-
-COMMENT_TEMPLATE = '''PR body is updated!
-<details><summary>diff</summary>
-<p>
-
-```diff
-{diff}
-```
-
-</p>
-</detail>
-'''
+BODY_TEMPLATE: str = os.environ['INPUT_BODYTEMPLATE']
+COMMENT_TEMPLATE: str = os.environ['INPUT_COMMENTTEMPLATE']
 
 
 # release 向きの最新 PR を取得
@@ -52,7 +42,7 @@ def find_or_create_release_pr(repo: github.Repository.Repository, base: str, hea
                                 draft=True)
 
 # PR のコミットメッセージから含まれる PR を探して新しいの PR の body を作る
-def make_new_body(pr: github.PullRequest.PullRequest) -> Optional[str]:
+def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional[str]:
     commit_messages = [cm.commit.message for cm in pr.get_commits()]
     merge_commit_messages = [m for m in commit_messages if m.startswith("Merge pull request")]
 
@@ -67,7 +57,7 @@ def make_new_body(pr: github.PullRequest.PullRequest) -> Optional[str]:
 
     body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
     if len(body_lines) > 0:
-        return '## Changes\n\n' + body_lines
+        return template.format(summary=body_lines)
     else:
         return None
 
@@ -77,7 +67,7 @@ def main():
     release_pr = find_or_create_release_pr(repo, base=BASE_BRANCH, head=HEAD_BRANCH, number=RELEASE_PR_NUMBER)
 
     # body を生成
-    new_body = make_new_body(release_pr)
+    new_body = make_new_body(release_pr, template=BODY_TEMPLATE)
     if not new_body:
         print("Failed to generate new PR body.")
         sys.exit(1)

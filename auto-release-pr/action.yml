@@ -19,6 +19,31 @@ inputs:
   releasePRNumber:
     description: The number of release Pull Request.
     required: false
+  bodyTemplate:
+    description: |
+      The template of generating release Pull Request.
+      `{summary}` will be replaced by generating body.
+    required: true
+    default: |
+      ## Changes
+
+      {summary}
+  commentTemplate:
+    description: |
+      The template of generating comment.
+      `{diff}` will be replaced by diff.
+    required: true
+    default: |
+      PR body is updated!
+      <details><summary>diff</summary>
+      <p>
+
+      ```diff
+      {diff}
+      ```
+
+      </p>
+      </detail>
 runs:
   using: "docker"
   image: "Dockerfile"
