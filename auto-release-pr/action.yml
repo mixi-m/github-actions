@@ -4,7 +4,6 @@ inputs:
   githubToken:
     description: GitHub Token
     required: true
-outputs:
 runs:
   using: "docker"
   image: "Dockerfile"
