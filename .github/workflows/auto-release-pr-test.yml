@@ -1,3 +1,4 @@
+name: Test auto-release-pr
 on:
   push:
 jobs:
