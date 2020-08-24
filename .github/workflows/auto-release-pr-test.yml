@@ -1,6 +1,7 @@
 name: Test auto-release-pr
 on:
-  pull_request:
+  # To test, comment-in following line. The PR body will be generated.
+  #pull_request:
 jobs:
   test:
     runs-on: ubuntu-latest

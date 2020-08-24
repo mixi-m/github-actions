@@ -22,7 +22,7 @@ inputs:
   bodyTemplate:
     description: |
       The template of generating release Pull Request.
-      `{summary}` will be replaced by generating body.
+      `{summary}` will be replaced with generating body.
     required: true
     default: |
       ## Changes
@@ -31,7 +31,7 @@ inputs:
   commentTemplate:
     description: |
       The template of generating comment.
-      `{diff}` will be replaced by diff.
+      `{diff}` will be replaced with diff.
     required: true
     default: |
       PR body is updated!
