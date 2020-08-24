@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ratel-pay/github-actions/auto-release-pr@master
-          with:
+        with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           # Set if needed
           # baseBranch: release

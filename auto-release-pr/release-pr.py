@@ -31,7 +31,7 @@ def find_or_create_release_pr(repo: github.Repository.Repository, base: str, hea
     if number:
         return repo.get_pull(int(number))
 
-    latest = find_latest_release_pr(repo)
+    latest = find_latest_release_pr(repo, base=base, head=head)
     if latest:
         return latest
     else:
