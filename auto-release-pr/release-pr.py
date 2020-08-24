@@ -65,7 +65,8 @@ def make_new_body(pr: github.PullRequest.PullRequest) -> Optional[str]:
 
         return f'- {number}: {title}'
 
-    body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
+    # body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
+    body_lines = '\n'.join([f'- {m}' for m in commit_messages])
     if len(body_lines) > 0:
         return '## Changes\n\n' + body_lines
     else:
