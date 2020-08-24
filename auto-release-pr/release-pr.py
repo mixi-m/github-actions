@@ -47,8 +47,8 @@ def find_or_create_release_pr(repo: github.Repository.Repository, base: str, hea
     else:
         return repo.create_pull(title='[リリース]',
                                 body='',
-                                base='release',
-                                head='master',
+                                base=base,
+                                head=head,
                                 draft=True)
 
 # PR のコミットメッセージから含まれる PR を探して新しいの PR の body を作る
