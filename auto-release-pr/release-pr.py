@@ -55,8 +55,7 @@ def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional
 
         return f'- {number}: {title}'
 
-    # body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
-    body_lines = '\n'.join([f'- {m.splitlines()[0]}' for m in commit_messages])
+    body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
     if len(body_lines) > 0:
         return template.format(summary=body_lines)
     else:

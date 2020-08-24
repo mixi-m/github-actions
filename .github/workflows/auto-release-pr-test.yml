@@ -10,12 +10,3 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           releasePRNumber: ${{ github.event.pull_request.number }}
-          bodyTemplate: |
-            差分
-
-            {summary}
-
-            以上
-          commentTemplate: |
-            diff
-            {diff}
