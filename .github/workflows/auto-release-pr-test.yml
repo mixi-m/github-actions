@@ -1,0 +1,15 @@
+name: Test auto-release-pr
+on:
+  # To test, comment-in following line. The PR body will be generated.
+  #pull_request:
+  # dummy trigger
+  repository_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./auto-release-pr
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          releasePRNumber: ${{ github.event.pull_request.number }}

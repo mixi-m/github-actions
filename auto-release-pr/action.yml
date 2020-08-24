@@ -1,0 +1,49 @@
+name: Update Release PR
+description: Find or create release Pull Request and update its body automatically.
+inputs:
+  githubToken:
+    description: GitHub Token
+    required: true
+  baseBranch:
+    description: |
+      The base branch of Pull Request to find.
+      It will be ignored if `releasePRNumber` is passed.
+    required: true
+    default: release
+  headBranch:
+    description: |
+      The head branch of Pull Request to find.
+      It will be ignored if `releasePRNumber` is passed.
+    required: true
+    default: master
+  releasePRNumber:
+    description: The number of release Pull Request.
+    required: false
+  bodyTemplate:
+    description: |
+      The template of generating release Pull Request.
+      `{summary}` will be replaced with generating body.
+    required: true
+    default: |
+      ## Changes
+
+      {summary}
+  commentTemplate:
+    description: |
+      The template of generating comment.
+      `{diff}` will be replaced with diff.
+    required: true
+    default: |
+      PR body is updated!
+      <details><summary>diff</summary>
+      <p>
+
+      ```diff
+      {diff}
+      ```
+
+      </p>
+      </detail>
+runs:
+  using: "docker"
+  image: "Dockerfile"
