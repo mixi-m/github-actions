@@ -47,6 +47,10 @@ inputs:
   releasePRLabel:
     description: The label for release Pull Request.
     required: false
+  newReleasePRTitle:
+    description: The title of new release Pull Request.
+    required: true
+    default: "[リリース]"
 runs:
   using: "docker"
   image: "Dockerfile"

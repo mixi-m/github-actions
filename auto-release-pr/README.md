@@ -18,6 +18,7 @@
 | `bodyTemplate` | | [`action.yml`](https://github.com/ratel-pay/github-actions/blob/master/auto-release-pr/action.yml) を参照 | PR本文の生成テンプレート。テンプレート内の `{summary}` が差分の箇条書きに置き換えられます。 |
 | `commentTemplate` | | [`action.yml`](https://github.com/ratel-pay/github-actions/blob/master/auto-release-pr/action.yml) を参照 | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に置き換えられます。 |
 | `releasePRLabel` | | | リリースPRにつけるラベル。新規作成時や既存のものに付与されていなかったときは新たに付与されます。 |
+| `newReleasePRTitle` | | `[リリース]` | 新規作成するリリースPRのタイトル |
 
 ## Usage
 

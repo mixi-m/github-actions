@@ -17,6 +17,8 @@ BODY_TEMPLATE: str = os.environ['INPUT_BODYTEMPLATE']
 COMMENT_TEMPLATE: str = os.environ['INPUT_COMMENTTEMPLATE']
 RELEASE_PR_LABEL: Optional[str] = os.environ.get('INPUT_RELEASEPRLABEL')
 
+NEW_RELEASE_PR_TITLE: str = os.environ['INPUT_NEWRELEASEPRTITLE']
+
 
 # release 向きの最新 PR を取得
 def find_latest_release_pr(repo: github.Repository.Repository, base: str, head: str) -> Optional[github.PullRequest.PullRequest]:	
@@ -28,7 +30,7 @@ def find_latest_release_pr(repo: github.Repository.Repository, base: str, head: 
         return None
 
 # release 向きの最新 PR を取得を探して、なかったら作成する
-def find_or_create_release_pr(repo: github.Repository.Repository, base: str, head: str, number: Optional[str]) -> github.PullRequest.PullRequest:	
+def find_or_create_release_pr(repo: github.Repository.Repository, base: str, head: str, number: Optional[str], new_title: str) -> github.PullRequest.PullRequest:	
     if number:
         return repo.get_pull(int(number))
 
@@ -36,7 +38,7 @@ def find_or_create_release_pr(repo: github.Repository.Repository, base: str, hea
     if latest:
         return latest
     else:
-        return repo.create_pull(title='[リリース]',
+        return repo.create_pull(title=new_title,
                                 body='',
                                 base=base,
                                 head=head,
@@ -72,7 +74,7 @@ def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional
 def main():
     g = github.Github(GITHUB_TOKEN)
     repo = g.get_repo(REPO_NAME)
-    release_pr = find_or_create_release_pr(repo, base=BASE_BRANCH, head=HEAD_BRANCH, number=RELEASE_PR_NUMBER)
+    release_pr = find_or_create_release_pr(repo, base=BASE_BRANCH, head=HEAD_BRANCH, number=RELEASE_PR_NUMBER, new_title=NEW_RELEASE_PR_TITLE)
 
     add_label(release_pr, label=RELEASE_PR_LABEL)
 
