@@ -1,9 +1,9 @@
 name: Test auto-release-pr
 on:
   # To test, comment-in following line. The PR body will be generated.
-  #pull_request:
+  pull_request:
   # dummy trigger
-  repository_dispatch:
+  #repository_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,3 +13,4 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           releasePRNumber: ${{ github.event.pull_request.number }}
+          releasePRLabel: bug
