@@ -15,7 +15,7 @@ RELEASE_PR_NUMBER: Optional[str] = os.environ.get('INPUT_RELEASEPRNUMBER')
 
 BODY_TEMPLATE: str = os.environ['INPUT_BODYTEMPLATE']
 COMMENT_TEMPLATE: str = os.environ['INPUT_COMMENTTEMPLATE']
-RELEASE_PR_LABEL: Optional[str] = os.environ.get('INPUT_LABEL')
+RELEASE_PR_LABEL: Optional[str] = os.environ.get('INPUT_PRLABEL')
 
 
 # release 向きの最新 PR を取得
