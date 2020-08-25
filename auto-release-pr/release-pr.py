@@ -15,6 +15,9 @@ RELEASE_PR_NUMBER: Optional[str] = os.environ.get('INPUT_RELEASEPRNUMBER')
 
 BODY_TEMPLATE: str = os.environ['INPUT_BODYTEMPLATE']
 COMMENT_TEMPLATE: str = os.environ['INPUT_COMMENTTEMPLATE']
+RELEASE_PR_LABEL: Optional[str] = os.environ.get('INPUT_RELEASEPRLABEL')
+
+NEW_RELEASE_PR_TITLE: str = os.environ['INPUT_NEWRELEASEPRTITLE']
 
 
 # release 向きの最新 PR を取得
@@ -27,7 +30,7 @@ def find_latest_release_pr(repo: github.Repository.Repository, base: str, head: 
         return None
 
 # release 向きの最新 PR を取得を探して、なかったら作成する
-def find_or_create_release_pr(repo: github.Repository.Repository, base: str, head: str, number: Optional[str]) -> github.PullRequest.PullRequest:	
+def find_or_create_release_pr(repo: github.Repository.Repository, base: str, head: str, number: Optional[str], new_title: str) -> github.PullRequest.PullRequest:	
     if number:
         return repo.get_pull(int(number))
 
@@ -35,11 +38,18 @@ def find_or_create_release_pr(repo: github.Repository.Repository, base: str, hea
     if latest:
         return latest
     else:
-        return repo.create_pull(title='[リリース]',
+        return repo.create_pull(title=new_title,
                                 body='',
                                 base=base,
                                 head=head,
                                 draft=True)
+
+# PR にラベル付与
+def add_label(pr: github.PullRequest.PullRequest, label: Optional[str]):
+    if not label:
+        return
+    
+    pr.add_to_labels(label)
 
 # PR のコミットメッセージから含まれる PR を探して新しいの PR の body を作る
 def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional[str]:
@@ -64,7 +74,9 @@ def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional
 def main():
     g = github.Github(GITHUB_TOKEN)
     repo = g.get_repo(REPO_NAME)
-    release_pr = find_or_create_release_pr(repo, base=BASE_BRANCH, head=HEAD_BRANCH, number=RELEASE_PR_NUMBER)
+    release_pr = find_or_create_release_pr(repo, base=BASE_BRANCH, head=HEAD_BRANCH, number=RELEASE_PR_NUMBER, new_title=NEW_RELEASE_PR_TITLE)
+
+    add_label(release_pr, label=RELEASE_PR_LABEL)
 
     # body を生成
     new_body = make_new_body(release_pr, template=BODY_TEMPLATE)
