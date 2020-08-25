@@ -49,7 +49,7 @@ def add_label(pr: github.PullRequest.PullRequest, label: Optional[str]):
     if not label:
         return
     
-    pr.add_to_labels([label])
+    pr.add_to_labels(label)
 
 # PR のコミットメッセージから含まれる PR を探して新しいの PR の body を作る
 def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional[str]:
