@@ -60,10 +60,10 @@ def make_new_body(repo: github.Repository.Repository, pr: github.PullRequest.Pul
     def convert_to_body_line(message: str) -> str:
         lines = message.splitlines()
 
-        number = re.search(r'#\d+', lines[0]).group()
+        number = re.search(r'#(\d+)', lines[0]).group(1)
         title = repo.get_pull(int(number)).title
 
-        return f'- {number}: {title}'
+        return f'- #{number}: {title}'
 
     body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
     if len(body_lines) > 0:
