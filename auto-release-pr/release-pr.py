@@ -52,7 +52,7 @@ def add_label(pr: github.PullRequest.PullRequest, label: Optional[str]):
     pr.add_to_labels(label)
 
 # PR のコミットメッセージから含まれる PR を探して新しいの PR の body を作る
-def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional[str]:
+def make_new_body(repo: github.Repository.Repository, pr: github.PullRequest.PullRequest, template: str) -> Optional[str]:
     commit_messages = [cm.commit.message for cm in pr.get_commits()]
     merge_commit_messages = [m for m in commit_messages if m.startswith("Merge pull request")]
 
@@ -61,7 +61,7 @@ def make_new_body(pr: github.PullRequest.PullRequest, template: str) -> Optional
         lines = message.splitlines()
 
         number = re.search(r'#\d+', lines[0]).group()
-        title = lines[2]
+        title = repo.get_pull(int(number)).title
 
         return f'- {number}: {title}'
 
@@ -79,7 +79,7 @@ def main():
     add_label(release_pr, label=RELEASE_PR_LABEL)
 
     # body を生成
-    new_body = make_new_body(release_pr, template=BODY_TEMPLATE)
+    new_body = make_new_body(repo, release_pr, template=BODY_TEMPLATE)
     if not new_body:
         print("Failed to generate new PR body.")
         sys.exit(1)
