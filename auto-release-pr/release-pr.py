@@ -85,7 +85,7 @@ def main():
         sys.exit(1)
 
     # diff を生成
-    old_body_lines = release_pr.body.splitlines()
+    old_body_lines = (release_pr.body if release_pr.body else '').splitlines()
     new_body_lines = new_body.splitlines() 
     diff = '\n'.join(difflib.unified_diff(old_body_lines, new_body_lines))
 
