@@ -19,7 +19,7 @@ GitHub Actions の機能である、 [Reusing workflows](https://docs.github.com
 |-|-|-|-|
 | `aws_account_id` | ✔ | | 実行する AWS アカウントの ID |
 | `codebuild_project_name` | ✔ | | CodeBuild のプロジェクト名 |
-| `codebuild_buildspec` | | | デフォルト: `buildspec.yml` |
+| `codebuild_buildspec` | | `buildspec.yml` | 実行する buildspec を上書きすることができます。 |
 
 ## Usage
 
