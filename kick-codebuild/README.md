@@ -40,12 +40,12 @@ permissions:
 
 jobs:
   example-job-1:
-    uses: ratel-pay/github-actions/kick-codebuild/kick-codebuild.yaml@master
+    uses: ratel-pay/github-actions/.github/workflows/kick-codebuild.yaml@master
     with:
       aws_account_id: 1234567890
       codebuild_project_name: example-job-1
   production:
-    uses: ratel-pay/github-actions/kick-codebuild/kick-codebuild.yaml@master
+    uses: ratel-pay/github-actions/.github/workflows/kick-codebuild.yaml@master
     with:
       aws_account_id: 1234567890
       codebuild_project_name: example-job-2
