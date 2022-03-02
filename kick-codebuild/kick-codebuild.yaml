@@ -1,0 +1,33 @@
+name: Call and execute AWS CodeBuild
+on:
+  workflow_call:
+    inputs:
+      aws_account_id:
+        required: true
+        type: string
+      codebuild_project_name:
+        required: true
+        type: string
+      codebuild_buildspec:
+        required: false
+        type: string
+        default: buildspec.yml
+
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/codebuild-github-actions-role
+          aws-region: ap-northeast-1
+      - name: Execute CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@v1
+        with:
+          project-name: ${{ inputs.codebuild_project_name }}
+          buildspec-override: ${{ inputs.buildspec }}
