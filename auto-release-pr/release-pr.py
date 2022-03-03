@@ -23,7 +23,7 @@ NEW_RELEASE_PR_TITLE: str = os.environ['INPUT_NEWRELEASEPRTITLE']
 # release 向きの最新 PR を取得
 def find_latest_release_pr(repo: github.Repository.Repository, base: str, head: str) -> Optional[github.PullRequest.PullRequest]:	
     prs = repo.get_pulls(state='open', base=base, head=head, sort='created', direction='desc')	
-    print(prs)
+    print(prs.totalCount)
 
     if prs.totalCount > 0:	
         return prs[0]	
@@ -36,7 +36,9 @@ def find_or_create_release_pr(repo: github.Repository.Repository, base: str, hea
         return repo.get_pull(int(number))
 
     latest = find_latest_release_pr(repo, base=base, head=head)
+    
     if latest:
+        print("return latest PR")
         return latest
     else:
         return repo.create_pull(title=new_title,
