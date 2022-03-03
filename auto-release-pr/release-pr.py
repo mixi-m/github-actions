@@ -95,8 +95,8 @@ def main():
     old_body_lines = (release_pr.body if release_pr.body else '').splitlines()
     new_body_lines = new_body.splitlines() 
     diff = '\n'.join(difflib.unified_diff(old_body_lines, new_body_lines))
-    new_line = filter(lambda line: line not in old_body_lines, new_body_lines)[0]
-
+    new_line = [line for line in new_body_lines if line not in old_body_lines][0]
+   
     # PR 本文を更新
     release_pr.edit(body=new_body)
 
