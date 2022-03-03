@@ -18,7 +18,8 @@ COMMENT_TEMPLATE: str = os.environ['INPUT_COMMENTTEMPLATE']
 RELEASE_PR_LABEL: Optional[str] = os.environ.get('INPUT_RELEASEPRLABEL')
 
 NEW_RELEASE_PR_TITLE: str = os.environ['INPUT_NEWRELEASEPRTITLE']
-
+CHECK_TEXT: str = os.environ['INPUT_CHECK_TEXT']
+CHECKBOX_STR: str = "  - [ ] #{CHECK_TEXT}"
 
 # release 向きの最新 PR を取得
 def find_latest_release_pr(repo: github.Repository.Repository, base: str, head: str) -> Optional[github.PullRequest.PullRequest]:	
@@ -55,19 +56,23 @@ def add_label(pr: github.PullRequest.PullRequest, label: Optional[str]):
 def make_new_body(repo: github.Repository.Repository, pr: github.PullRequest.PullRequest, template: str) -> Optional[str]:
     commit_messages = [cm.commit.message for cm in pr.get_commits()]
     merge_commit_messages = [m for m in commit_messages if m.startswith("Merge pull request")]
-
+    current_checklist = filter(lambda line: CHECK_TEXT in line, (pr.body or "").splitlines())
+        
     # 複数行のコミットメッセージから箇条書きの一行を生成する
-    def convert_to_body_line(message: str) -> str:
+    def convert_to_body_line(index: int, message: str) -> str:
         lines = message.splitlines()
-
         number = re.search(r'#(\d+)', lines[0]).group(1)
         title = repo.get_pull(int(number)).title
+        try:
+            checkbox = current_checklist[index]
+        except IndexError:
+            checkbox = CHECKBOX_STR
 
-        return f'- #{number}: {title}'
-
-    body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
-    if len(body_lines) > 0:
-        return template.format(summary=body_lines)
+        return f"- #{number}: {title}\n#{checkbox}"
+    
+    body = '\n'.join(map(convert_to_body_line, enumerate(merge_commit_messages)))
+    if len(body) > 0:
+        return template.format(summary=body)
     else:
         return None
 
@@ -85,7 +90,7 @@ def main():
         sys.exit(1)
 
     # diff を生成
-    old_body_lines = (release_pr.body if release_pr.body else '').splitlines()
+    old_body_lines = (release_pr.body or "" ).splitlines()
     new_body_lines = new_body.splitlines() 
     diff = '\n'.join(difflib.unified_diff(old_body_lines, new_body_lines))
 
