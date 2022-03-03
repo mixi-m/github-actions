@@ -9,13 +9,13 @@ inputs:
       The base branch of Pull Request to find.
       It will be ignored if `releasePRNumber` is passed.
     required: true
-    default: release
+    default: master
   headBranch:
     description: |
       The head branch of Pull Request to find.
       It will be ignored if `releasePRNumber` is passed.
     required: true
-    default: master
+    default: debug/actions
   releasePRNumber:
     description: The number of release Pull Request.
     required: false
@@ -50,7 +50,7 @@ inputs:
   newReleasePRTitle:
     description: The title of new release Pull Request.
     required: true
-    default: "[リリース]"
+    default: "[actionsのテスト]"
 runs:
   using: "docker"
   image: "Dockerfile"
