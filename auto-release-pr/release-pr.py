@@ -23,6 +23,7 @@ NEW_RELEASE_PR_TITLE: str = os.environ['INPUT_NEWRELEASEPRTITLE']
 # release 向きの最新 PR を取得
 def find_latest_release_pr(repo: github.Repository.Repository, base: str, head: str) -> Optional[github.PullRequest.PullRequest]:	
     prs = repo.get_pulls(state='open', base=base, head=head, sort='created', direction='desc')	
+    print(prs)
 
     if prs.totalCount > 0:	
         return prs[0]	
@@ -65,6 +66,8 @@ def make_new_body(repo: github.Repository.Repository, pr: github.PullRequest.Pul
 
         return f'- #{number}: {title}'
 
+    print(commit_messages)
+    print(merge_commit_messages)
     body_lines = '\n'.join(map(convert_to_body_line, merge_commit_messages))
     if len(body_lines) > 0:
         return template.format(summary=body_lines)
@@ -74,6 +77,8 @@ def make_new_body(repo: github.Repository.Repository, pr: github.PullRequest.Pul
 def main():
     g = github.Github(GITHUB_TOKEN)
     repo = g.get_repo(REPO_NAME)
+    print(BASE_BRANCH)
+    print(HEAD_BRANCH)
     release_pr = find_or_create_release_pr(repo, base=BASE_BRANCH, head=HEAD_BRANCH, number=RELEASE_PR_NUMBER, new_title=NEW_RELEASE_PR_TITLE)
 
     add_label(release_pr, label=RELEASE_PR_LABEL)
