@@ -95,12 +95,13 @@ def main():
     old_body_lines = (release_pr.body if release_pr.body else '').splitlines()
     new_body_lines = new_body.splitlines() 
     diff = '\n'.join(difflib.unified_diff(old_body_lines, new_body_lines))
+    new_line = filter(lambda line: line not in old_body_lines, new_body_lines)
 
     # PR 本文を更新
     release_pr.edit(body=new_body)
 
     # comment に diff を残す
-    comment_body = COMMENT_TEMPLATE.format(diff=diff)
+    comment_body = COMMENT_TEMPLATE.format(diff=diff, new_line=new_line)
     release_pr.as_issue().create_comment(comment_body)
 
 
