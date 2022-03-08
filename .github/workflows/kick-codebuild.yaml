@@ -13,7 +13,6 @@ on:
         type: string
         default: buildspec.yml
 
-
 jobs:
   execute:
     runs-on: ubuntu-latest
@@ -30,4 +29,4 @@ jobs:
         uses: aws-actions/aws-codebuild-run-build@v1
         with:
           project-name: ${{ inputs.codebuild_project_name }}
-          buildspec-override: ${{ inputs.buildspec }}
+          buildspec-override: ${{ inputs.codebuild_buildspec }}
