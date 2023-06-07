@@ -12,6 +12,10 @@ on:
         required: false
         type: string
         default: buildspec.yml
+      timeout_minutes:
+        required: false
+        type: number
+        default: 10
       platform:
         required: false
         type: string
@@ -20,6 +24,7 @@ on:
 jobs:
   execute:
     runs-on: ${{ inputs.platform }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
     steps:
       - uses: actions/checkout@v3
         with:
