@@ -1,0 +1,99 @@
+name: Claude PR Action
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'The type of machine to run the job on'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      model:
+        description: 'The Claude model to use'
+        required: false
+        type: string
+        default: 'apac.anthropic.claude-sonnet-4-20250514-v1:0'
+      region:
+        description: 'AWS region to use'
+        required: false
+        type: string
+        default: 'ap-northeast-1'
+    secrets:
+      AWS_ROLE_TO_ASSUME:
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  claude-pr:
+    runs-on: ${{ inputs.runs-on }}
+    env:
+      AWS_REGION: ${{ inputs.region }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ inputs.region }}
+
+      - uses: anthropics/claude-code-action@beta
+        with:
+          trigger_phrase: "@claude"
+          timeout_minutes: "60"
+          use_bedrock: "true"
+          model: ${{ inputs.model }}
+          allowed_tools: "Bash(git:*),mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_pull_request_diff"
+
+          # https://github.com/anthropics/claude-code-action/issues/60#issuecomment-2952771401
+          direct_prompt: |
+            **【レビュー依頼の場合】**
+            この PR をレビューし、GitHub のレビュー機能を使ってフィードバックをしてください。作業は次の手順に沿って進めてください：
+            1. **レビューを開始する:** `mcp__github__create_pending_pull_request_review` を使って、保留中のレビューを開始します。
+            2. **変更内容を確認する:** `mcp__github__get_pull_request_diff` を使って、コードの変更点や行番号を把握します。
+            3. **インラインコメントを追加する:** 改善点や懸念事項があるコードの行には `mcp__github__add_comment_to_pending_review` を使ってコメントを追加します。
+            4. **レビューを提出する:** `mcp__github__submit_pending_pull_request_review` を使って、イベントタイプを "COMMENT" ("REQUEST_CHANGES" ではない) に設定し、non-blocking なレビューとして全てのコメントを公開します。
+
+            レビューの際は、以下の点に注意してください：
+            - コードの品質とベストプラクティス
+            - 潜在的なバグやセキュリティの問題
+            - パフォーマンスの考慮事項
+            - メンテナンス性と可読性
+            - アーキテクチャと設計の決定
+
+            具体的で実行可能なフィードバックを提供してください。行ごとの問題にはインラインコメントを使用し、レビューを提出する際には全体の要約も含めてください。
+            **重要:** レビューは "COMMENT" タイプで提出し、PR をブロックしないようにしてください。
+
+            **【Issue解決の場合】**
+            この Issue で挙げた課題について、修正対応をお願いします。対応の際は、以下のフローに沿って PR を作成してください：
+            1. CLAUDE.md に記載されたコーディングガイドラインに従って修正を行ってください。
+            2. 修正が完了したら、新しいブランチを切り、PR を作成してください。
+            3. PR のタイトルや説明欄には、Issue 番号を明記し、何をどう修正したかを簡潔に記述してください。
+
+            修正内容が Issue の趣旨から外れている場合や、より良い対応方針があれば、PR 上で相談してください。
+            コードの品質を保つためにも、丁寧な対応をお願いします。
+
+          # https://github.com/anthropics/claude-code-action/issues/309#issuecomment-3092466624
+          custom_instructions: |
+            When you are asked to write, update, or fix code, please ensure that:
+
+            - You always try to run git bash commands to commit your changes.
+            You have limited permissions and most bash commands will be rejected
+            but you specifically have been granted permission to run common git
+            commands like `git add`, `git commit`, and `git push`. Even if another
+            bash command fails, you should still try to run these git commands.
+            - Before ending a job, if you have code changes, make every reasonable attempt
+            to ensure you commit and push your changes to the respective branch.
+            - Never commit changes to the 'develop' or 'main' branches, always commit to
+            the applicable branch based on your current context.
+            - You do not have access to the development environment, so framework or
+            package-specific commands like `pnpm install` or `python manage.py makemigrations`
+            will not work. Instead, focus on code changes and commit them.
