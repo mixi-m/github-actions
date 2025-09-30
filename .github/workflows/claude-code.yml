@@ -12,7 +12,7 @@ on:
         description: 'The Claude model to use'
         required: false
         type: string
-        default: 'apac.anthropic.claude-sonnet-4-20250514-v1:0'
+        default: 'jp.anthropic.claude-sonnet-4-5-20250929-v1:0'
       region:
         description: 'AWS region to use'
         required: false
