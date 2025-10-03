@@ -23,6 +23,7 @@ on:
         required: true
 
 permissions:
+  actions: read
   contents: write
   pull-requests: write
   issues: write
@@ -62,7 +63,7 @@ jobs:
             PR NUMBER: ${{ github.event.pull_request.number }}
 
             この PR をレビューし、具体的で実行可能なフィードバックを提供してください。
-            特定の問題にはインラインコメントを使用し、一般的な観察や称賛にはトップレベルのコメントを使用してください。
+            行ごとの問題にはインラインコメントを使用し、一般的な観察や称賛にはトップレベルのコメントを使用してください。
 
             レビューの際は、以下の点に注意してください：
             - コードの品質とベストプラクティス
