@@ -31,6 +31,7 @@ permissions:
 jobs:
   claude-pr:
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 60
     env:
       AWS_REGION: ${{ inputs.region }}
     steps:
@@ -45,16 +46,30 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ inputs.region }}
 
-      - uses: anthropics/claude-code-action@beta
+      - uses: anthropics/claude-code-action@v1
         with:
-          trigger_phrase: "@claude"
-          timeout_minutes: "60"
           use_bedrock: "true"
-          model: ${{ inputs.model }}
-          allowed_tools: "Bash(git:*),mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_pull_request_diff"
+
+          claude_args: |
+            --model ${{ inputs.model }}
+            --allowedTools Bash(git:*),mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_pull_request_diff
+            --system-prompt "When you are asked to write, update, or fix code, please ensure that:
+
+            - You always try to run git bash commands to commit your changes.
+            You have limited permissions and most bash commands will be rejected
+            but you specifically have been granted permission to run common git
+            commands like `git add`, `git commit`, and `git push`. Even if another
+            bash command fails, you should still try to run these git commands.
+            - Before ending a job, if you have code changes, make every reasonable attempt
+            to ensure you commit and push your changes to the respective branch.
+            - Never commit changes to the 'develop' or 'main' branches, always commit to
+            the applicable branch based on your current context.
+            - You do not have access to the development environment, so framework or
+            package-specific commands like `pnpm install` or `python manage.py makemigrations`
+            will not work. Instead, focus on code changes and commit them."
 
           # https://github.com/anthropics/claude-code-action/issues/60#issuecomment-2952771401
-          direct_prompt: |
+          prompt: |
             **【レビュー依頼の場合】**
             この PR をレビューし、GitHub のレビュー機能を使ってフィードバックをしてください。作業は次の手順に沿って進めてください：
             1. **レビューを開始する:** `mcp__github__create_pending_pull_request_review` を使って、保留中のレビューを開始します。
@@ -80,20 +95,3 @@ jobs:
 
             修正内容が Issue の趣旨から外れている場合や、より良い対応方針があれば、PR 上で相談してください。
             コードの品質を保つためにも、丁寧な対応をお願いします。
-
-          # https://github.com/anthropics/claude-code-action/issues/309#issuecomment-3092466624
-          custom_instructions: |
-            When you are asked to write, update, or fix code, please ensure that:
-
-            - You always try to run git bash commands to commit your changes.
-            You have limited permissions and most bash commands will be rejected
-            but you specifically have been granted permission to run common git
-            commands like `git add`, `git commit`, and `git push`. Even if another
-            bash command fails, you should still try to run these git commands.
-            - Before ending a job, if you have code changes, make every reasonable attempt
-            to ensure you commit and push your changes to the respective branch.
-            - Never commit changes to the 'develop' or 'main' branches, always commit to
-            the applicable branch based on your current context.
-            - You do not have access to the development environment, so framework or
-            package-specific commands like `pnpm install` or `python manage.py makemigrations`
-            will not work. Instead, focus on code changes and commit them.
