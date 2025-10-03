@@ -59,9 +59,10 @@ jobs:
             --model ${{ inputs.model }}
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
 
-          # PR review instructions
+          # PR review and issue resolution instructions
           # https://github.com/anthropics/claude-code-action/blob/main/examples/pr-review-comprehensive.yml
           prompt: |
+            **【レビュー依頼の場合】**
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
@@ -74,3 +75,15 @@ jobs:
             - パフォーマンスの考慮事項
             - メンテナンス性と可読性
             - アーキテクチャと設計の決定
+
+            **【Issue解決の場合】**
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+
+            この Issue で挙げた課題について、修正対応をお願いします。対応の際は、以下のフローに沿って PR を作成してください：
+            1. CLAUDE.md に記載されたコーディングガイドラインに従って修正を行ってください。
+            2. 修正が完了したら、新しいブランチを切り、PR を作成してください。
+            3. PR のタイトルや説明欄には、Issue 番号を明記し、何をどう修正したかを簡潔に記述してください。
+
+            修正内容が Issue の趣旨から外れている場合や、より良い対応方針があれば、PR 上で相談してください。
+            コードの品質を保つためにも、丁寧な対応をお願いします。
