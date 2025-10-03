@@ -52,6 +52,9 @@ jobs:
           track_progress: true
           use_bedrock: true
 
+          additional_permissions: |
+            actions: read
+
           claude_args: |
             --model ${{ inputs.model }}
 
