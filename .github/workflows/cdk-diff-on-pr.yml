@@ -1,0 +1,99 @@
+name: CDK Diff on PR
+
+on:
+  workflow_call:
+    inputs:
+      aws_accounts:
+        description: 'JSON array of AWS account configurations [{"id": "123456789", "name": "account-name"}, ...]'
+        required: true
+        type: string
+      aws_region:
+        description: 'AWS region'
+        required: false
+        type: string
+        default: 'ap-northeast-1'
+      aws_role_name:
+        description: 'IAM role name to assume for CDK operations'
+        required: true
+        type: string
+      node_version_file:
+        description: 'Path to Node.js version file (e.g., .tool-versions, .nvmrc)'
+        required: false
+        type: string
+        default: '.tool-versions'
+      working_directory:
+        description: 'Working directory for CDK operations'
+        required: false
+        type: string
+        default: '.'
+      drift_detection_timeout_sec:
+        description: 'Timeout for drift detection in seconds'
+        required: false
+        type: number
+        default: 300
+      cdk_context:
+        description: 'CDK context parameter key (e.g., "env" for --context env=<name>)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  diff:
+    name: Show CDK Stack Diff
+    strategy:
+      fail-fast: false
+      matrix:
+        aws_account: ${{ fromJson(inputs.aws_accounts) }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ${{ inputs.node_version_file }}
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: npm install
+
+      - name: Checkout github-actions repository
+        uses: actions/checkout@v5
+        with:
+          repository: mixi-m/github-actions
+          path: .github-actions-repo
+          sparse-checkout: |
+            scripts/cdk-diff
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::${{ matrix.aws_account.id }}:role/${{ inputs.aws_role_name }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Check CFn Stack Diff
+        working-directory: ${{ inputs.working_directory }}
+        env:
+          AWS_ACCOUNT: ${{ matrix.aws_account.id }}
+          AWS_ACCOUNT_MAPPING: ${{ inputs.aws_accounts }}
+          AWS_REGION: ${{ inputs.aws_region }}
+          DRIFT_DETECTION_TIMEOUT_SEC: ${{ inputs.drift_detection_timeout_sec }}
+          ENV_NAME: ${{ matrix.aws_account.name }}
+          CDK_CONTEXT: ${{ inputs.cdk_context }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          npx zx ${{ github.workspace }}/.github-actions-repo/scripts/cdk-diff/main.mjs
