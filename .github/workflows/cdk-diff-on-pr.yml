@@ -74,7 +74,6 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: mixi-m/github-actions
-          ref: feature/cdk-diff-reusable-workflow  # 一時的な変更：PR #29 がマージされたら削除
           path: .github-actions-repo
           sparse-checkout: |
             scripts/cdk-diff
