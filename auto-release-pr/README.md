@@ -19,20 +19,21 @@
 
 ### 特徴
 - GitHub CLI (gh) を使用するため、`@octokit/rest` などの npm パッケージのインストールが不要
-- Workflow から受け取った `githubToken` を環境変数として設定し、gh コマンドが自動的に使用
+- GitHub Actions の `GITHUB_TOKEN` を gh コマンドが自動的に使用
 - ubuntu-latest にプリインストールされている gh コマンドを活用し、高速に動作
 
 ## Inputs
 | パラメータ | Required | Default | |
 |-|-|-|-|
-| `githubToken` | ✔ | | GitHub Token。GitHub CLI (gh) の認証に利用されます。通常は `${{ secrets.GITHUB_TOKEN }}` を指定します。 |
 | `baseBranch` | | `release` | リリースPRのBase Branch。PRの探索や作成時に利用されます。 |
 | `headBranch` | | `master` | リリースPRのHead Branch。PRの探索や作成時に利用されます。 |
 | `releasePRNumber` | | | リリースPRの番号。 `releasePRNumber` が指定されると `baseBranch`/`headBranch` は無視されます。 |
 | `bodyTemplate` | | `## Changes\n\n{summary}` | PR本文の生成テンプレート。テンプレート内の `{summary}` が差分の箇条書きに置き換えられます。 |
-| `commentTemplate` | | [デフォルトテンプレート](https://github.com/mixi-m/github-actions/blob/master/.github/workflows/auto-release-pr.yml#L42-L53) | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に、`{new_line}`が新規差分の先頭一行目に置き換えられます。 |
+| `commentTemplate` | | [デフォルトテンプレート](https://github.com/mixi-m/github-actions/blob/master/.github/workflows/auto-release-pr.yml#L35-L46) | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に、`{new_line}`が新規差分の先頭一行目に置き換えられます。 |
 | `releasePRLabel` | | | リリースPRにつけるラベル。新規作成時や既存のものに付与されていなかったときは新たに付与されます。 |
 | `newReleasePRTitle` | | `[リリース]` | 新規作成するリリースPRのタイトル |
+
+**注意**: GitHub Token (`GITHUB_TOKEN`) は自動的に利用可能なため、inputs として渡す必要はありません。
 
 ## Usage
 
@@ -49,11 +50,15 @@ on:
       - closed
     branches:
       - master
+
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   update:
     uses: mixi-m/github-actions/.github/workflows/auto-release-pr.yml@master
-    with:
-      githubToken: ${{ secrets.GITHUB_TOKEN }}
+    # with:
       # Set if needed
       # baseBranch: release
       # headBranch: master
@@ -71,10 +76,14 @@ on:
       - synchronized
     branches:
       - release
+
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   update:
     uses: mixi-m/github-actions/.github/workflows/auto-release-pr.yml@master
     with:
-      githubToken: ${{ secrets.GITHUB_TOKEN }}
       releasePRNumber: ${{ github.event.pull_request.number }}
 ```

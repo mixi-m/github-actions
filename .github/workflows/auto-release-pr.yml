@@ -3,10 +3,6 @@ name: Auto Release PR
 on:
   workflow_call:
     inputs:
-      githubToken:
-        description: 'GitHub Token'
-        required: true
-        type: string
       baseBranch:
         description: |
           The base branch of Pull Request to find.
@@ -89,7 +85,6 @@ jobs:
 
       - name: Update Release PR Body
         env:
-          GITHUB_TOKEN: ${{ inputs.githubToken }}
           BASE_BRANCH: ${{ inputs.baseBranch }}
           HEAD_BRANCH: ${{ inputs.headBranch }}
           RELEASE_PR_NUMBER: ${{ inputs.releasePRNumber }}
