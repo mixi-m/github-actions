@@ -12,15 +12,25 @@
 
 このワークフローは Node.js + mjs で実装されており、Docker を使用しません。
 
+### 技術スタック
+- **Node.js LTS** - 実行環境
+- **zx** - シェルスクリプト実行
+- **GitHub CLI (gh)** - GitHub API 操作
+
+### 特徴
+- GitHub CLI (gh) を使用するため、`@octokit/rest` などの npm パッケージのインストールが不要
+- Workflow から受け取った `githubToken` を環境変数として設定し、gh コマンドが自動的に使用
+- ubuntu-latest にプリインストールされている gh コマンドを活用し、高速に動作
+
 ## Inputs
 | パラメータ | Required | Default | |
 |-|-|-|-|
-| `githubToken` | ✔ | | GitHub Token。PRの探索や更新に利用されます。 |
+| `githubToken` | ✔ | | GitHub Token。GitHub CLI (gh) の認証に利用されます。通常は `${{ secrets.GITHUB_TOKEN }}` を指定します。 |
 | `baseBranch` | | `release` | リリースPRのBase Branch。PRの探索や作成時に利用されます。 |
 | `headBranch` | | `master` | リリースPRのHead Branch。PRの探索や作成時に利用されます。 |
 | `releasePRNumber` | | | リリースPRの番号。 `releasePRNumber` が指定されると `baseBranch`/`headBranch` は無視されます。 |
 | `bodyTemplate` | | `## Changes\n\n{summary}` | PR本文の生成テンプレート。テンプレート内の `{summary}` が差分の箇条書きに置き換えられます。 |
-| `commentTemplate` | | diff を含むコメント | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に、`{new_line}`が新規差分の先頭一行目に置き換えられます。 |
+| `commentTemplate` | | [デフォルトテンプレート](https://github.com/mixi-m/github-actions/blob/master/.github/workflows/auto-release-pr.yml#L42-L53) | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に、`{new_line}`が新規差分の先頭一行目に置き換えられます。 |
 | `releasePRLabel` | | | リリースPRにつけるラベル。新規作成時や既存のものに付与されていなかったときは新たに付与されます。 |
 | `newReleasePRTitle` | | `[リリース]` | 新規作成するリリースPRのタイトル |
 
