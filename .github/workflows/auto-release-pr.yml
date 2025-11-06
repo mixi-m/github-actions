@@ -86,6 +86,7 @@ jobs:
 
       - name: Update Release PR Body
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_BRANCH: ${{ inputs.baseBranch }}
           HEAD_BRANCH: ${{ inputs.headBranch }}
           RELEASE_PR_NUMBER: ${{ inputs.releasePRNumber }}
