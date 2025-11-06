@@ -19,7 +19,6 @@ async function main() {
         // 設定を取得
         const config = getConfig();
 
-        console.log(`Repository: ${config.gitHubRepository}`);
         console.log(`Base Branch: ${config.baseBranch}`);
         console.log(`Head Branch: ${config.headBranch}`);
         if (config.releasePRNumber) {

@@ -6,30 +6,6 @@
  */
 
 /**
- * GitHub Token を取得
- * @returns {string} GitHub Token
- */
-export function getGitHubToken() {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) {
-        throw new Error("GITHUB_TOKEN environment variable is required");
-    }
-    return token;
-}
-
-/**
- * GitHub リポジトリ名を取得
- * @returns {string} リポジトリ名（例: "owner/repo"）
- */
-export function getGitHubRepository() {
-    const repo = process.env.GITHUB_REPOSITORY;
-    if (!repo) {
-        throw new Error("GITHUB_REPOSITORY environment variable is required");
-    }
-    return repo;
-}
-
-/**
  * Base Branch を取得
  * @returns {string} Base Branch
  */
@@ -102,8 +78,6 @@ export function getNewReleasePRTitle() {
  */
 export function getConfig() {
     return {
-        gitHubToken: getGitHubToken(),
-        gitHubRepository: getGitHubRepository(),
         baseBranch: getBaseBranch(),
         headBranch: getHeadBranch(),
         releasePRNumber: getReleasePRNumber(),
