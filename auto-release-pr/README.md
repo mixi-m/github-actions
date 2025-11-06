@@ -35,6 +35,18 @@
 
 **注意**: GitHub Token (`GITHUB_TOKEN`) は自動的に利用可能なため、inputs として渡す必要はありません。
 
+## 前提条件
+
+このワークフローを使用する前に、以下の設定が必要です：
+
+1. **GitHub Actions の権限設定**
+   - リポジトリの Settings > Actions > General > Workflow permissions
+   - "Allow GitHub Actions to create and approve pull requests" を **ON** にする
+
+2. **ラベルの作成**（`releasePRLabel` を使用する場合）
+   - 指定するラベルを事前にリポジトリに作成しておく必要があります
+   - ラベルが存在しない場合、ワークフローはエラーになります
+
 ## Usage
 
 ブランチ運用フローによって2つの使い方があります。
