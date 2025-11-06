@@ -1,12 +1,16 @@
 # auto-release-pr
 
-リリースPull Requestの本文を自動で書き換えるActionです。
+リリースPull Requestの本文を自動で書き換える Reusable Workflow です。
 
 以下の動作をします。
 
 1. 対象となるリリースPRを探索、見つからなければ新たに作成します。
 1. リリースPRに含まれる各コミットのコミットメッセージから含まれているPRの一覧を取得します。
 1. リリースPRの本文を更新して、前後の差分をコメントに残します。
+
+## 実装
+
+このワークフローは Node.js + mjs で実装されており、Docker を使用しません。
 
 ## Inputs
 | パラメータ | Required | Default | |
@@ -15,8 +19,8 @@
 | `baseBranch` | | `release` | リリースPRのBase Branch。PRの探索や作成時に利用されます。 |
 | `headBranch` | | `master` | リリースPRのHead Branch。PRの探索や作成時に利用されます。 |
 | `releasePRNumber` | | | リリースPRの番号。 `releasePRNumber` が指定されると `baseBranch`/`headBranch` は無視されます。 |
-| `bodyTemplate` | | [`action.yml`](https://github.com/ratel-pay/github-actions/blob/master/auto-release-pr/action.yml) を参照 | PR本文の生成テンプレート。テンプレート内の `{summary}` が差分の箇条書きに置き換えられます。 |
-| `commentTemplate` | | [`action.yml`](https://github.com/ratel-pay/github-actions/blob/master/auto-release-pr/action.yml) を参照 | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に、`{new_line}`が新規差分の先頭一行目に置き換えられます。 |
+| `bodyTemplate` | | `## Changes\n\n{summary}` | PR本文の生成テンプレート。テンプレート内の `{summary}` が差分の箇条書きに置き換えられます。 |
+| `commentTemplate` | | diff を含むコメント | 本文の更新差分のコメントのテンプレート。テンプレート内の `{diff}` が差分表示に、`{new_line}`が新規差分の先頭一行目に置き換えられます。 |
 | `releasePRLabel` | | | リリースPRにつけるラベル。新規作成時や既存のものに付与されていなかったときは新たに付与されます。 |
 | `newReleasePRTitle` | | `[リリース]` | 新規作成するリリースPRのタイトル |
 
@@ -31,21 +35,18 @@
 ```yaml
 on:
   pull_request:
-    types: 
+    types:
       - closed
     branches:
       - master
 jobs:
   update:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ratel-pay/github-actions/auto-release-pr@master
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          # Set if needed
-          # baseBranch: release
-          # headBranch: master
+    uses: mixi-m/github-actions/.github/workflows/auto-release-pr.yml@master
+    with:
+      githubToken: ${{ secrets.GITHUB_TOKEN }}
+      # Set if needed
+      # baseBranch: release
+      # headBranch: master
 ```
 
 ### リリースのたびにブランチを切ってPull Requestを作成している場合
@@ -55,18 +56,15 @@ jobs:
 ```yaml
 on:
   pull_request:
-    types: 
+    types:
       - opened
       - synchronized
     branches:
       - release
 jobs:
   update:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ratel-pay/github-actions/auto-release-pr@master
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          releasePRNumber: ${{ github.event.pull_request.number }}
+    uses: mixi-m/github-actions/.github/workflows/auto-release-pr.yml@master
+    with:
+      githubToken: ${{ secrets.GITHUB_TOKEN }}
+      releasePRNumber: ${{ github.event.pull_request.number }}
 ```

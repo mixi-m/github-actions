@@ -1,0 +1,101 @@
+name: Auto Release PR
+
+on:
+  workflow_call:
+    inputs:
+      githubToken:
+        description: 'GitHub Token'
+        required: true
+        type: string
+      baseBranch:
+        description: |
+          The base branch of Pull Request to find.
+          It will be ignored if `releasePRNumber` is passed.
+        required: false
+        type: string
+        default: 'release'
+      headBranch:
+        description: |
+          The head branch of Pull Request to find.
+          It will be ignored if `releasePRNumber` is passed.
+        required: false
+        type: string
+        default: 'master'
+      releasePRNumber:
+        description: 'The number of release Pull Request.'
+        required: false
+        type: string
+      bodyTemplate:
+        description: |
+          The template of generating release Pull Request.
+          `{summary}` will be replaced with generating body.
+        required: false
+        type: string
+        default: |
+          ## Changes
+
+          {summary}
+      commentTemplate:
+        description: |
+          The template of generating comment.
+          `{diff}` will be replaced with diff.
+        required: false
+        type: string
+        default: |
+          PR body is updated!
+          <details><summary>diff</summary>
+          <p>
+
+          ```diff
+          {diff}
+          ```
+
+          </p>
+          </details>
+      releasePRLabel:
+        description: 'The label for release Pull Request.'
+        required: false
+        type: string
+      newReleasePRTitle:
+        description: 'The title of new release Pull Request.'
+        required: false
+        type: string
+        default: '[リリース]'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  update:
+    name: Update Release PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Checkout github-actions repository
+        uses: actions/checkout@v5
+        with:
+          repository: mixi-m/github-actions
+          path: .github-actions-repo
+          sparse-checkout: |
+            scripts/auto-release-pr
+
+      - name: Update Release PR Body
+        env:
+          GITHUB_TOKEN: ${{ inputs.githubToken }}
+          BASE_BRANCH: ${{ inputs.baseBranch }}
+          HEAD_BRANCH: ${{ inputs.headBranch }}
+          RELEASE_PR_NUMBER: ${{ inputs.releasePRNumber }}
+          BODY_TEMPLATE: ${{ inputs.bodyTemplate }}
+          COMMENT_TEMPLATE: ${{ inputs.commentTemplate }}
+          RELEASE_PR_LABEL: ${{ inputs.releasePRLabel }}
+          NEW_RELEASE_PR_TITLE: ${{ inputs.newReleasePRTitle }}
+        run: |
+          npx zx ${{ github.workspace }}/.github-actions-repo/scripts/auto-release-pr/main.mjs
