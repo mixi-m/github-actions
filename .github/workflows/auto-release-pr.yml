@@ -79,7 +79,6 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: mixi-m/github-actions
-          ref: feature/migrate-auto-release-pr-to-nodejs
           path: .github-actions-repo
           sparse-checkout: |
             scripts/auto-release-pr
