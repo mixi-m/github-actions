@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -71,7 +71,7 @@ jobs:
         run: npm install
 
       - name: Checkout github-actions repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: mixi-m/github-actions
           path: .github-actions-repo
