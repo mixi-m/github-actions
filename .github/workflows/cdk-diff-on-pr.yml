@@ -79,7 +79,7 @@ jobs:
             scripts/cdk-diff
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ matrix.aws_account.id }}:role/${{ inputs.aws_role_name }}
           aws-region: ${{ inputs.aws_region }}
