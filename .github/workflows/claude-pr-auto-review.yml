@@ -1,0 +1,87 @@
+name: Claude Automatic PR Code Review
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'The type of machine to run the job on'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      model:
+        description: 'The Claude model to use'
+        required: false
+        type: string
+        default: 'global.anthropic.claude-sonnet-4-6'
+      region:
+        description: 'AWS region to use'
+        required: false
+        type: string
+        default: 'ap-northeast-1'
+      base_branch:
+        description: 'Base branch for PR diff'
+        required: false
+        type: string
+        default: 'master'
+    secrets:
+      AWS_ROLE_TO_ASSUME:
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  auto-code-review:
+    name: Claude Automatic Code Review
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 30
+    env:
+      AWS_REGION: ${{ inputs.region }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Claude Automatic Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          track_progress: true
+          use_bedrock: true
+          claude_args: |
+            --model ${{ inputs.model }}
+            --allowedTools "Agent,Skill,Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh pr review:*)"
+          base_branch: ${{ inputs.base_branch }}
+          prompt: |
+            **Language: Japanese（日本語で回答）**
+
+            # Automatic Code Review for PR #${{ github.event.pull_request.number }}
+
+            このリポジトリに `engineering:code-review` スキルが定義されていれば、それを参照してください。
+            定義されていない場合は、以下の観点でレビューを行ってください。
+
+            ## レビュー観点
+            - コードの品質とベストプラクティス
+            - 潜在的なバグやセキュリティの問題
+            - パフォーマンスの考慮事項
+            - メンテナンス性と可読性
+            - アーキテクチャと設計の決定
+
+            ## レビュー方法
+            - 行ごとの問題にはインラインコメントを使用する
+            - 一般的な観察や称賛にはトップレベルのコメントを使用する
+            - 具体的で実行可能なフィードバックを提供する
+
+            ## レビュー情報
+            - Repository: ${{ github.repository }}
+            - PR Author: ${{ github.event.pull_request.user.login }}
