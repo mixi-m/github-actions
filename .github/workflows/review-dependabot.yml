@@ -1,0 +1,97 @@
+name: Dependabot PR Review
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'The type of machine to run the job on'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      model:
+        description: 'The Claude model to use'
+        required: false
+        type: string
+        default: 'global.anthropic.claude-sonnet-4-6'
+      region:
+        description: 'AWS region to use'
+        required: false
+        type: string
+        default: 'ap-northeast-1'
+    secrets:
+      AWS_ROLE_TO_ASSUME:
+        required: true
+
+jobs:
+  review:
+    name: AI review comment (dependabot)
+    runs-on: ${{ inputs.runs-on }}
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      actions: read
+      id-token: write
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Claude AI Review (Comment Only)
+        uses: anthropics/claude-code-action@v1
+        with:
+          use_bedrock: true
+          track_progress: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_bots: "*"
+          prompt: |
+            **Language: 日本語で回答**
+
+            PR #${{ github.event.pull_request.number }} は Dependabot によるバージョンアップです。
+            自動マージは行いません。破壊的変更の有無と実使用箇所への影響を分析し、
+            人間のレビュアーへの情報提供としてコメントを残してください。
+
+            ## 分析手順
+
+            1. `gh pr view ${{ github.event.pull_request.number }}` で PR 本文・リリースノートを確認する
+            2. `gh pr diff ${{ github.event.pull_request.number }}` で変更内容を確認する
+            3. 更新された依存関係をこのリポジトリで実際に使用している箇所を `Grep` や `Read` で確認する
+            4. 破壊的変更と実使用箇所への影響を評価する
+
+            ## レビューコメント
+
+            以下のテンプレートで `gh pr comment ${{ github.event.pull_request.number }} -b` を使ってコメントしてください:
+
+            ```
+            # Dependabot PR レビュー
+
+            ## 対象
+            <!-- パッケージ名@旧バージョン → 新バージョン -->
+
+            ## サマリー
+            <!-- 変更内容の概要 -->
+
+            ## 破壊的変更
+            - 状況: <!-- あり / なし / 確認不可 -->
+            - 詳細: <!-- 破壊的変更の内容 -->
+
+            ## 実使用箇所への影響
+            <!-- 影響がある場合: ファイルパス:行番号、使用対象、変更内容、影響評価 -->
+            <!-- 影響がない場合: 「影響なし」 -->
+
+            ## 推奨アクション
+            <!-- レビュアーへの推奨事項 -->
+            ```
+
+            このPRは承認しないでください。コメントのみ残してください。
+          claude_args: |
+            --model ${{ inputs.model }}
+            --allowedTools "Read,Glob,Grep,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --max-turns 20
