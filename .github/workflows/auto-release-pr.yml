@@ -66,6 +66,10 @@ jobs:
   update:
     name: Update Release PR
     runs-on: ubuntu-slim
+    # 並列実行による二重コメントを防ぐ
+    concurrency:
+      group: ${{ github.repository }}-release-pr-update
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
