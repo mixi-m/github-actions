@@ -66,6 +66,11 @@ function getFirstNewLine(oldText, newText) {
 export async function updatePrBody(pr, newBody, commentTemplate) {
     const oldBody = pr.body || "";
 
+    if (oldBody === newBody) {
+        console.log("\nPR body is unchanged, skipping update and comment.");
+        return;
+    }
+
     console.log("\nUpdating PR body...");
 
     // PR の body を更新
