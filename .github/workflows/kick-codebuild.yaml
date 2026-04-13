@@ -40,7 +40,7 @@ jobs:
           aws-region: ap-northeast-1
           mask-aws-account-id: false
       - name: Execute CodeBuild
-        uses: aws-actions/aws-codebuild-run-build@4d15a47425739ac2296ba5e7eee3bdd4bfbdd767 # v1.0.18
+        uses: aws-actions/aws-codebuild-run-build@7e46c3fa1c1f217e26a73712796b1f78938b534b # v1.0.19
         with:
           project-name: ${{ inputs.codebuild_project_name }}
           buildspec-override: ${{ inputs.codebuild_buildspec }}
