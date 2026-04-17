@@ -12,7 +12,7 @@ on:
         description: 'The Claude model to use'
         required: false
         type: string
-        default: 'global.anthropic.claude-opus-4-6'
+        default: 'global.anthropic.claude-opus-4-6-v1'
       region:
         description: 'AWS region to use'
         required: false
