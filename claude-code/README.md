@@ -33,7 +33,7 @@ permissions:
 | パラメータ | Required | Default | |
 |-|-|-|-|
 | `runs-on` | | `ubuntu-latest` | ジョブを実行するマシンの種類 |
-| `model` | | `apac.anthropic.claude-sonnet-4-20250514-v1:0` | 使用するClaudeモデル |
+| `model` | | `global.anthropic.claude-opus-4-6` | 使用するClaudeモデル |
 | `region` | | `ap-northeast-1` | 使用するAWSリージョン |
 
 ## Secrets
@@ -84,7 +84,7 @@ jobs:
     uses: mixi-m/github-actions/.github/workflows/claude-code.yml@master
     with:
       runs-on: 'ubuntu-latest'  # オプション、デフォルト: ubuntu-latest
-      model: 'apac.anthropic.claude-sonnet-4-20250514-v1:0'  # オプション
+      model: 'global.anthropic.claude-opus-4-6'  # オプション
       region: 'ap-northeast-1'  # オプション、デフォルト: ap-northeast-1
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
