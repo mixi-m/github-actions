@@ -24,9 +24,11 @@ export async function getCfnTemplates(stackNames) {
         console.log(`Found ${cfnStackNames.length} existing CloudFormation stacks: ${cfnStackNames.join(", ")}`);
 
         // 各 Stack の template を取得
+        // --template-stage Original を明示することで SAM Transform 含むスタックでも
+        // 展開前の未処理テンプレートを取得し、cdk synth 結果との phantom diff を防ぐ
         const cfnTemplates = {};
         for (const stackName of cfnStackNames) {
-            const command = await $`aws cloudformation get-template --stack-name ${stackName}`;
+            const command = await $`aws cloudformation get-template --stack-name ${stackName} --template-stage Original`;
             cfnTemplates[stackName] = JSON.parse(command.stdout).TemplateBody;
             console.log(`Loaded CloudFormation template for stack: ${stackName}`);
         }
