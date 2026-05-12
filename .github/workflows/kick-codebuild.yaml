@@ -34,7 +34,7 @@ jobs:
           # pull_request_review 時は PR HEAD の SHA を明示的に指定する。
           ref: ${{ github.event_name == 'pull_request_review' && github.event.pull_request.head.sha || '' }}
       - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885 # v6.1.1
         with:
           role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/codebuild-github-actions-role
           aws-region: ap-northeast-1
