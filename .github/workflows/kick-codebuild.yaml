@@ -21,6 +21,10 @@ on:
         type: string
         default: ubuntu-latest
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   execute:
     runs-on: ${{ inputs.platform }}
