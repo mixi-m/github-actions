@@ -40,6 +40,7 @@ export function formatComment({
     cfnStacks,
     editedStackCount,
     stackDriftDetected,
+    filteredChangesCounts = {},
 }) {
     const messageHeading = getCommentHeading(environmentAlias);
     let comment = `${messageHeading}\n\n\n`;
@@ -63,6 +64,7 @@ export function formatComment({
             cfnStackResourcesSummaries,
             cfnStacks,
             awsRegion,
+            filteredChangesCount: filteredChangesCounts[stackName] ?? 0,
         });
     }
 
@@ -126,6 +128,7 @@ function formatStackDetail({
     cfnStackResourcesSummaries,
     cfnStacks,
     awsRegion,
+    filteredChangesCount = 0,
 }) {
     let comment = "";
 
@@ -170,6 +173,9 @@ function formatStackDetail({
     comment += "<summary>cdk diff</summary>\n\n";
     comment += "```\n";
     comment += cleanDiff;
+    if (filteredChangesCount > 0) {
+        comment += `\nOmitted ${filteredChangesCount} change(s) because they are likely mangled non-ASCII characters. Use --strict to print them.`;
+    }
     comment += "\n```\n\n";
     comment += "</details>\n\n";
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env zx
 
 import { PassThrough } from "node:stream";
-import { formatDifferences, fullDiff } from "@aws-cdk/cloudformation-diff";
+import { formatDifferences, fullDiff, mangleLikeCloudFormation } from "@aws-cdk/cloudformation-diff";
 import { chalk } from "zx";
 
 /**
@@ -15,26 +15,44 @@ export function calculateDiff(stackNames, cfnTemplates, stackTemplates) {
     console.log("##[group]Calculate Template Diff");
 
     const templateDiff = {};
+    const filteredChangesCounts = {};
     let editedStackCount = 0;
 
     for (const stackName of stackNames) {
         const currentTemplate = cfnTemplates[stackName] ?? {};
         const newTemplate = stackTemplates[stackName];
 
-        templateDiff[stackName] = fullDiff(currentTemplate, newTemplate);
+        const rawDiff = fullDiff(currentTemplate, newTemplate);
 
-        if (templateDiff[stackName].differenceCount) {
+        // CFn の GetStackTemplate API は U+0080 以上を '?' に潰して返すため、
+        // 同じ変換を新テンプレートに施した版で再 diff し、phantom diff を除去する。
+        // (@aws-cdk/toolkit-lib の formatStackDiffHelper と同等の処理)
+        let activeDiff = rawDiff;
+        let filteredCount = 0;
+        if (rawDiff.differenceCount && newTemplate) {
+            const mangledNewTemplate = JSON.parse(mangleLikeCloudFormation(JSON.stringify(newTemplate)));
+            const mangledDiff = fullDiff(currentTemplate, mangledNewTemplate);
+            filteredCount = Math.max(0, rawDiff.differenceCount - mangledDiff.differenceCount);
+            if (filteredCount > 0) {
+                activeDiff = mangledDiff;
+            }
+        }
+
+        templateDiff[stackName] = activeDiff;
+        filteredChangesCounts[stackName] = filteredCount;
+
+        if (activeDiff.differenceCount) {
             editedStackCount += 1;
-            console.log(`Stack ${stackName} has ${templateDiff[stackName].differenceCount} difference(s)`);
+            console.log(`Stack ${stackName} has ${activeDiff.differenceCount} difference(s)${filteredCount > 0 ? ` (omitted ${filteredCount} mangled non-ASCII change(s))` : ""}`);
         } else {
-            console.log(`Stack ${stackName} has no differences`);
+            console.log(`Stack ${stackName} has no differences${filteredCount > 0 ? ` (omitted ${filteredCount} mangled non-ASCII change(s))` : ""}`);
         }
     }
 
     console.log(`Total stacks with changes: ${editedStackCount}/${stackNames.length}`);
     console.log("##[endgroup]");
 
-    return { templateDiff, editedStackCount };
+    return { templateDiff, editedStackCount, filteredChangesCounts };
 }
 
 /**

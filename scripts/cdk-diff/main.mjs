@@ -33,7 +33,7 @@ async function main() {
         const { cfnStackNames, cfnTemplates, cfnStacks } = await getCfnTemplates(stackNames);
 
         // 3. Stack の差分を計算
-        const { templateDiff, editedStackCount } = calculateDiff(stackNames, cfnTemplates, stackTemplates);
+        const { templateDiff, editedStackCount, filteredChangesCounts } = calculateDiff(stackNames, cfnTemplates, stackTemplates);
 
         // 4. Stack の Drift を検知
         const stackDriftDetected = await detectStackDrift(stackNames, cfnStackNames, config.driftDetectionTimeout);
@@ -54,6 +54,7 @@ async function main() {
             cfnStacks,
             editedStackCount,
             stackDriftDetected,
+            filteredChangesCounts,
         });
 
         // 7. PR にコメントを投稿
