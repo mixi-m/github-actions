@@ -18,6 +18,26 @@ on:
         required: false
         type: string
         default: 'ap-northeast-1'
+      emit-verdict:
+        description: >-
+          レビューコメントに自動マージ判定用のマーカーを埋め込むか。
+          true の場合、判定を機械可読にするため track_progress を無効化する。
+        required: false
+        type: boolean
+        default: false
+      publish-check-run:
+        description: >-
+          レビュー判定を Check Run として publish するか。
+          true の場合は emit-verdict を自動的に有効化する。
+          利用側ジョブで checks: write の付与が必要。
+        required: false
+        type: boolean
+        default: false
+      check-name:
+        description: 'publish-check-run が true のときに作成する Check Run 名'
+        required: false
+        type: string
+        default: 'dependabot-code-review'
     secrets:
       AWS_ROLE_TO_ASSUME:
         required: true
@@ -28,6 +48,8 @@ permissions:
   id-token: write
   issues: write
   pull-requests: write
+  # publish-check-run 利用時にのみ実際に使用される（呼び出し側の付与権限で上限が決まる）
+  checks: write
 
 jobs:
   review:
@@ -40,6 +62,7 @@ jobs:
       issues: write
       actions: read
       id-token: write
+      checks: write
     timeout-minutes: 30
 
     steps:
@@ -55,7 +78,9 @@ jobs:
         uses: anthropics/claude-code-action@bbfaf8e1ffe3e688f7ab65ceee78de241e24a238 # v1.0.132
         with:
           use_bedrock: true
-          track_progress: true
+          # 判定マーカーを機械解析する場合は、専用コメントに確実に残すため
+          # track_progress を無効化する（既定では従来通り有効）。
+          track_progress: ${{ !(inputs.emit-verdict || inputs.publish-check-run) }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_bots: "*"
           prompt: |
@@ -96,9 +121,43 @@ jobs:
             ## 推奨アクション
             <!-- レビュアーへの推奨事項 -->
             ```
+            ${{ (inputs.emit-verdict || inputs.publish-check-run) && 'なお自動マージ判定のため、このレビューコメントの先頭に必ず次の HTML コメント行を含めてください（画面には表示されません）。1行目: <!-- dependabot-code-review -->。続けて、破壊的変更がなく実使用箇所への悪影響もない場合は <!-- dependabot-code-verdict:approved -->、いずれかに該当する/確認できない場合は <!-- dependabot-code-verdict:changes-requested --> を付与してください。' || '' }}
 
             このPRは承認しないでください。コメントのみ残してください。
           claude_args: |
             --model ${{ inputs.model }}
             --allowedTools "Read,Glob,Grep,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
             --max-turns 20
+
+      # publish-check-run が true のときのみ、レビュー判定を Check Run として
+      # publish する。判定はコメントに埋め込まれた検証マーカーから導出する。
+      # 承認可マーカーがあれば success、それ以外（マーカー無しを含む）は neutral。
+      - name: Publish review verdict check run
+        if: ${{ inputs.publish-check-run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHECK_NAME: ${{ inputs.check-name }}
+        run: |
+          set -euo pipefail
+
+          CONCLUSION=neutral
+          COMMENT_ID=$(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body // "" | contains("<!-- dependabot-code-review -->"))) | .id' \
+            | tail -n 1)
+          if [ -n "$COMMENT_ID" ]; then
+            BODY=$(gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" --jq '.body // ""')
+            case "$BODY" in *'<!-- dependabot-code-verdict:approved -->'*) CONCLUSION=success ;; esac
+          fi
+
+          echo "${CHECK_NAME} conclusion: ${CONCLUSION}"
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/check-runs" \
+            -f name="${CHECK_NAME}" \
+            -f head_sha="${HEAD_SHA}" \
+            -f status='completed' \
+            -f conclusion="${CONCLUSION}" \
+            -f 'output[title]=Dependabot code review' \
+            -f "output[summary]=Dependabot code review 判定: ${CONCLUSION}" \
+            > /dev/null
