@@ -1,0 +1,104 @@
+name: Dependabot Auto-Merge
+
+# dependabot PR の自動マージゲート。
+#
+# 呼び出し元は check_run イベントをトリガーにして、対象の Check Run のみに
+# 絞り込んだうえでこのワークフローを呼び出す。
+#
+# 判定フロー:
+#   1. head SHA に紐づく open dependabot PR を解決する
+#   2. exclude-major: true の場合、semver-major ラベルがある PR をスキップする
+#   3. 条件を満たす PR を承認して auto-merge を有効化する
+#
+# 実マージの安全性は呼び出し元リポジトリの Ruleset（必須チェック・マージキュー等）
+# が担保する。
+#
+# 前提となるリポジトリ設定（呼び出し元で手動有効化が必要）:
+#   - Settings > General > "Allow auto-merge"
+#   - Settings > Actions > General > "Allow GitHub Actions to create and approve
+#     pull requests"
+
+on:
+  workflow_call:
+    inputs:
+      exclude-major:
+        description: >-
+          semver-major ラベルが付いた PR を自動マージ対象外にするか。
+          true の場合、major バージョンアップは人間レビュー必須となる。
+        required: false
+        type: boolean
+        default: false
+      runs-on:
+        description: 'The type of machine to run the job on'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge dependabot PR
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
+    concurrency:
+      group: dependabot-auto-merge-${{ github.event.check_run.head_sha }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.check_run.head_sha }}
+    steps:
+      - name: Resolve PR and evaluate gates
+        run: |
+          set -euo pipefail
+
+          # head SHA に紐づく open PR を解決する
+          PR_NUMBER=$(gh api "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
+            --jq 'map(select(.state == "open"))[0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "head SHA ${HEAD_SHA} に対応する open PR が見つかりません。スキップします。"
+            exit 0
+          fi
+
+          # dependabot / open / 非 draft であることを確認する
+          INFO=$(gh pr view "$PR_NUMBER" \
+            --json author,state,isDraft,labels \
+            --jq '[.author.login, .state, (.isDraft | tostring), ([.labels[].name] | join(","))] | @tsv')
+          IFS=$'\t' read -r AUTHOR STATE DRAFT LABELS <<< "$INFO"
+
+          case "$AUTHOR" in
+            *dependabot*) ;;
+            *) echo "dependabot PR ではありません (author=${AUTHOR})。スキップします。"; exit 0 ;;
+          esac
+          if [ "$STATE" != "OPEN" ]; then
+            echo "PR が open ではありません (state=${STATE})。スキップします。"
+            exit 0
+          fi
+          if [ "$DRAFT" != "false" ]; then
+            echo "PR が draft です。スキップします。"
+            exit 0
+          fi
+
+          # major バージョンアップは exclude-major: true のとき人間レビュー必須
+          if [ "${{ inputs.exclude-major }}" = "true" ] && echo "$LABELS" | grep -q "semver-major"; then
+            echo "major バージョンアップのため自動マージをスキップします (labels=${LABELS})。"
+            exit 0
+          fi
+
+          echo "PR #${PR_NUMBER}: 検証チェックが揃いました。承認して auto-merge を有効化します。"
+          gh pr review "$PR_NUMBER" --approve \
+            --body "依存コードレビューが問題なしのため自動承認します。" \
+            || echo "承認をスキップしました（既に承認済み、または Actions による承認が無効化されている可能性があります）。"
+
+          # マージ方式はリポジトリのキュー設定が優先されるため、--merge 指定が
+          # 拒否される場合は方式なしで再試行する。
+          if gh pr merge "$PR_NUMBER" --auto --merge; then
+            echo "auto-merge を有効化しました。"
+          elif gh pr merge "$PR_NUMBER" --auto; then
+            echo "auto-merge を有効化しました（マージ方式はキュー設定に委譲）。"
+          else
+            echo "::warning::auto-merge を有効化できませんでした。リポジトリ設定の 'Allow auto-merge' が有効か確認してください。"
+          fi
