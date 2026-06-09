@@ -155,10 +155,10 @@ jobs:
             --json number,title,body,author,baseRefName,headRefName,state,isDraft,additions,deletions,changedFiles,labels,url \
             > vrt-ai-context/pr.json
 
-          # 直前に取得済みの pr.json から読み、API の再取得を避ける
-          PR_STATE=$(jq -r '.state' vrt-ai-context/pr.json)
-          IS_DRAFT=$(jq -r '.isDraft' vrt-ai-context/pr.json)
-          PR_AUTHOR=$(jq -r '.author.login' vrt-ai-context/pr.json)
+          # 直前に取得済みの pr.json から読み、API の再取得を避ける（1回の jq で3フィールドを取得）
+          IFS=$'\t' read -r PR_STATE IS_DRAFT PR_AUTHOR < <(
+            jq -r '[.state, (.isDraft | tostring), .author.login] | @tsv' vrt-ai-context/pr.json
+          )
 
           if ! gh pr diff "$PR_NUMBER" > vrt-ai-context/pr.diff; then
             echo "Failed to collect PR diff." > vrt-ai-context/pr.diff
@@ -209,17 +209,9 @@ jobs:
             HAS_COMMENT_CHANGES=true
           fi
 
-          if [ "$PR_STATE" = "OPEN" ]; then
-            echo "pr_open=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "pr_open=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ "$IS_DRAFT" = "true" ]; then
-            echo "is_draft=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_draft=false" >> "$GITHUB_OUTPUT"
-          fi
+          # IS_DRAFT は jq の tostring で既に true/false 文字列になっている
+          [ "$PR_STATE" = "OPEN" ] && echo "pr_open=true" >> "$GITHUB_OUTPUT" || echo "pr_open=false" >> "$GITHUB_OUTPUT"
+          echo "is_draft=${IS_DRAFT}" >> "$GITHUB_OUTPUT"
 
           # 自動マージ判定用に dependabot PR かどうかを出力する
           case "$PR_AUTHOR" in
@@ -365,11 +357,13 @@ jobs:
           # 視覚差分なしなら無条件で success（コメント探索を省略）
           conclusion-override: ${{ steps.context.outputs.has_changes == 'false' && 'success' || '' }}
 
-  # VRT が失敗した場合に failure Check Run を publish する。
+  # VRT が success 以外で終わった場合に failure Check Run を publish する。
   # review ジョブは conclusion == 'success' のときのみ起動するため、
-  # 失敗時は vrt-ai-review Check Run が作成されず auto-merge がハングする。
-  # このジョブが failure Check Run を明示的に publish することで、
-  # dependabot-auto-merge.yml が正常にスキップ判定できる。
+  # 失敗・タイムアウト・キャンセルのいずれの場合も vrt-ai-review Check Run が
+  # 作成されず auto-merge がハングする。
+  # conclusion != 'success'（cancelled を含む）を対象とするのは意図的。
+  # キャンセルは一時的な状態だが、次回 VRT 成功時に Check Run が上書きされるまで
+  # auto-merge をブロックするのが安全側の設計。
   publish-failure-check:
     if: |
       github.event.workflow_run.event == 'pull_request' &&
