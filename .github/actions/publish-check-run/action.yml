@@ -1,0 +1,75 @@
+name: Publish verdict check run
+description: >-
+  レビュー判定を head SHA の Check Run として publish する。
+  dependabot-auto-merge.yml が照会する機械可読チャネル。
+
+inputs:
+  github-token:
+    description: gh CLI 用トークン
+    required: true
+  check-name:
+    description: 作成する Check Run 名（dependabot-auto-merge.yml が参照する名前）
+    required: true
+  title:
+    description: Check Run のタイトル
+    required: true
+  head-sha:
+    description: Check Run を紐づける commit SHA
+    required: true
+  pr-number:
+    description: 判定コメントを探す対象 PR 番号（conclusion-override 指定時は未使用）
+    required: false
+    default: ""
+  marker:
+    description: 判定コメントを特定する HTML マーカー（conclusion-override 指定時は未使用）
+    required: false
+    default: ""
+  ok-marker:
+    description: success と判定する検証マーカー（conclusion-override 指定時は未使用）
+    required: false
+    default: ""
+  conclusion-override:
+    description: 指定時はコメント探索を行わずこの conclusion をそのまま使う
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        CHECK_NAME: ${{ inputs.check-name }}
+        TITLE: ${{ inputs.title }}
+        HEAD_SHA: ${{ inputs.head-sha }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        MARKER: ${{ inputs.marker }}
+        OK_MARKER: ${{ inputs.ok-marker }}
+        CONCLUSION_OVERRIDE: ${{ inputs.conclusion-override }}
+      run: |
+        set -euo pipefail
+
+        if [ -n "$CONCLUSION_OVERRIDE" ]; then
+          CONCLUSION="$CONCLUSION_OVERRIDE"
+        else
+          # github-actions[bot] が投稿した判定コメントの検証マーカーで判定する。
+          # マーカーが見つからなければ neutral（＝非 success）にフォールバックする。
+          CONCLUSION=neutral
+          BODY=$(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body // \"\" | contains(\"${MARKER}\"))) | .body // \"\"" \
+            | tail -n 1)
+          if [[ "${BODY}" == *"${OK_MARKER}"* ]]; then
+            CONCLUSION=success
+          fi
+        fi
+
+        echo "${CHECK_NAME} conclusion: ${CONCLUSION}"
+        gh api -X POST "repos/${GITHUB_REPOSITORY}/check-runs" \
+          -f name="${CHECK_NAME}" \
+          -f head_sha="${HEAD_SHA}" \
+          -f status='completed' \
+          -f conclusion="${CONCLUSION}" \
+          -f "output[title]=${TITLE}" \
+          -f "output[summary]=${TITLE} 判定: ${CONCLUSION}（dependabot 自動マージ用の検証チェック）" \
+          > /dev/null
