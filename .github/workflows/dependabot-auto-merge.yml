@@ -2,27 +2,50 @@ name: Dependabot Auto-Merge
 
 # dependabot PR の自動マージゲート。
 #
-# 呼び出し元は check_run イベントをトリガーにして、対象の Check Run のみに
-# 絞り込んだうえでこのワークフローを呼び出す。
+# 呼び出し元は任意のイベント（例: workflow_run / pull_request）をトリガーにして、
+# 評価対象コミットの head SHA を head-sha 入力で渡してこのワークフローを呼び出す。
+#
+# 承認・auto-merge の有効化は GitHub App トークンで実行する。
+# （GITHUB_TOKEN 由来のイベントは後続ワークフローを起動できず、また merge queue へ
+#   PR を投入できないため、App トークンが必要）
+# App トークンは App のレビューが approval としてカウントされるため、必須レビュー数の
+# 要件も満たせる。
 #
 # 判定フロー:
 #   1. head SHA に紐づく open dependabot PR を解決する
 #   2. exclude-major: true の場合、semver-major ラベルがある PR をスキップする
-#   3. vrt-workflow-filename が指定されている場合、そのワークフローが起動された
+#   3. code-review-check-name の Check Run が success である必要がある
+#   4. vrt-workflow-filename が指定されている場合、そのワークフローが起動された
 #      PR では vrt-check-name の Check Run も success である必要がある
-#   4. 条件を満たす PR を承認して auto-merge を有効化する
+#   5. 条件を満たす PR を承認して auto-merge を有効化する
 #
 # 実マージの安全性は呼び出し元リポジトリの Ruleset（必須チェック・マージキュー等）
 # が担保する。
 #
-# 前提となるリポジトリ設定（呼び出し元で手動有効化が必要）:
+# 前提となる呼び出し元の設定:
 #   - Settings > General > "Allow auto-merge"
-#   - Settings > Actions > General > "Allow GitHub Actions to create and approve
-#     pull requests"
+#   - GitHub App が対象リポジトリに contents:write / pull_requests:write でインストール済み
+#   - App の client-id（app-client-id 入力）と private key（app-private-key シークレット）を
+#     呼び出し元から渡す
 
 on:
   workflow_call:
     inputs:
+      head-sha:
+        description: 評価対象コミットの head SHA（呼び出し元のトリガーイベントから渡す）
+        required: true
+        type: string
+      app-client-id:
+        description: 承認・auto-merge に使う GitHub App の client-id
+        required: true
+        type: string
+      code-review-check-name:
+        description: >-
+          success を必須とするコードレビューの Check Run 名。
+          空文字を指定した場合はこのチェックを行わない。
+        required: false
+        type: string
+        default: 'dependabot-code-review'
       exclude-major:
         description: >-
           semver-major ラベルが付いた PR を自動マージ対象外にするか。
@@ -32,7 +55,7 @@ on:
         default: false
       vrt-workflow-filename:
         description: >-
-          VRT ワークフローのファイル名（例: vrt-monst.yml）。
+          VRT ワークフローのファイル名（例: vrt.yml）。
           指定した場合、そのワークフローが起動された PR では vrt-check-name の
           Check Run も success である必要がある。未指定の場合は VRT チェックを行わない。
         required: false
@@ -48,10 +71,13 @@ on:
         required: false
         type: string
         default: 'ubuntu-latest'
+    secrets:
+      app-private-key:
+        description: app-client-id に対応する GitHub App の private key
+        required: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   auto-merge:
@@ -59,16 +85,33 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: 10
     concurrency:
-      group: dependabot-auto-merge-${{ github.event.check_run.head_sha }}
+      group: dependabot-auto-merge-${{ inputs.head-sha }}
       cancel-in-progress: false
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GH_REPO: ${{ github.repository }}
-      HEAD_SHA: ${{ github.event.check_run.head_sha }}
     steps:
+      # 承認・auto-merge を行う App トークンを生成する。
+      # owner / repositories 未指定のため、呼び出し元リポジトリにスコープされる。
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ inputs.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+
       - name: Resolve PR and evaluate gates
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ inputs.head-sha }}
         run: |
           set -euo pipefail
+
+          # 指定した Check Run 名について、github-actions が作成した最新の run の
+          # conclusion を返す（同名 run が複数あれば完了時刻が最後のものを採用）。
+          latest_check_conclusion() {
+            gh api \
+              "repos/${GH_REPO}/commits/${HEAD_SHA}/check-runs?check_name=$1&per_page=100" \
+              --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.completed_at // .started_at) | last | .conclusion // ""'
+          }
 
           # head SHA に紐づく open PR を解決する
           PR_NUMBER=$(gh api "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
@@ -103,6 +146,16 @@ jobs:
             exit 0
           fi
 
+          # コードレビューの Check Run が success であることを必須とする
+          CODE_REVIEW_CHECK="${{ inputs.code-review-check-name }}"
+          if [ -n "$CODE_REVIEW_CHECK" ]; then
+            CR_CONCLUSION=$(latest_check_conclusion "$CODE_REVIEW_CHECK")
+            if [ "$CR_CONCLUSION" != "success" ]; then
+              echo "${CODE_REVIEW_CHECK} が success ではないためスキップします (conclusion=${CR_CONCLUSION:-未完了})。"
+              exit 0
+            fi
+          fi
+
           # VRT ワークフローが指定されている場合、起動された PR では VRT チェックも必須
           APPROVE_BODY="依存コードレビューが問題なしのため自動承認します。"
           VRT_WORKFLOW="${{ inputs.vrt-workflow-filename }}"
@@ -111,9 +164,7 @@ jobs:
               "repos/${GH_REPO}/actions/workflows/${VRT_WORKFLOW}/runs?head_sha=${HEAD_SHA}&per_page=1" \
               --jq '.total_count')
             if [ "${VRT_RUNS:-0}" -gt 0 ]; then
-              VRT_CONCLUSION=$(gh api \
-                "repos/${GH_REPO}/commits/${HEAD_SHA}/check-runs?check_name=${{ inputs.vrt-check-name }}&per_page=100" \
-                --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.completed_at // .started_at) | last | .conclusion // ""')
+              VRT_CONCLUSION=$(latest_check_conclusion "${{ inputs.vrt-check-name }}")
               echo "PR #${PR_NUMBER}: VRT 対象 (runs=${VRT_RUNS}) / ${{ inputs.vrt-check-name }}=${VRT_CONCLUSION:-未完了}"
               if [ "$VRT_CONCLUSION" != "success" ]; then
                 echo "VRT 対象 PR で ${{ inputs.vrt-check-name }} が success ではないためスキップします。"
@@ -128,7 +179,7 @@ jobs:
           echo "PR #${PR_NUMBER}: 検証チェックが揃いました。承認して auto-merge を有効化します。"
           gh pr review "$PR_NUMBER" --approve \
             --body "$APPROVE_BODY" \
-            || echo "承認をスキップしました（既に承認済み、または Actions による承認が無効化されている可能性があります）。"
+            || echo "承認をスキップしました（既に承認済みの可能性があります）。"
 
           # マージ方式はリポジトリのキュー設定が優先されるため、--merge 指定が
           # 拒否される場合は方式なしで再試行する。
