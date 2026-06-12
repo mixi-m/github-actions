@@ -14,9 +14,10 @@ name: Dependabot Auto-Merge
 # 判定フロー:
 #   1. head SHA に紐づく open dependabot PR を解決する
 #   2. exclude-major: true の場合、semver-major ラベルがある PR をスキップする
-#   3. vrt-workflow-filename が指定されている場合、そのワークフローが起動された
+#   3. code-review-check-name の Check Run が success である必要がある
+#   4. vrt-workflow-filename が指定されている場合、そのワークフローが起動された
 #      PR では vrt-check-name の Check Run も success である必要がある
-#   4. 条件を満たす PR を承認して auto-merge を有効化する
+#   5. 条件を満たす PR を承認して auto-merge を有効化する
 #
 # 実マージの安全性は呼び出し元リポジトリの Ruleset（必須チェック・マージキュー等）
 # が担保する。
@@ -38,6 +39,13 @@ on:
         description: 承認・auto-merge に使う GitHub App の client-id
         required: true
         type: string
+      code-review-check-name:
+        description: >-
+          success を必須とするコードレビューの Check Run 名。
+          空文字を指定した場合はこのチェックを行わない。
+        required: false
+        type: string
+        default: 'dependabot-code-review'
       exclude-major:
         description: >-
           semver-major ラベルが付いた PR を自動マージ対象外にするか。
@@ -128,6 +136,18 @@ jobs:
           if [ "${{ inputs.exclude-major }}" = "true" ] && echo "$LABELS" | grep -q "semver-major"; then
             echo "major バージョンアップのため自動マージをスキップします (labels=${LABELS})。"
             exit 0
+          fi
+
+          # コードレビューの Check Run が success であることを必須とする
+          CODE_REVIEW_CHECK="${{ inputs.code-review-check-name }}"
+          if [ -n "$CODE_REVIEW_CHECK" ]; then
+            CR_CONCLUSION=$(gh api \
+              "repos/${GH_REPO}/commits/${HEAD_SHA}/check-runs?check_name=${CODE_REVIEW_CHECK}&per_page=100" \
+              --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.completed_at // .started_at) | last | .conclusion // ""')
+            if [ "$CR_CONCLUSION" != "success" ]; then
+              echo "${CODE_REVIEW_CHECK} が success ではないためスキップします (conclusion=${CR_CONCLUSION:-未完了})。"
+              exit 0
+            fi
           fi
 
           # VRT ワークフローが指定されている場合、起動された PR では VRT チェックも必須
