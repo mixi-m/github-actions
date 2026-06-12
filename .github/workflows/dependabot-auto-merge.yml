@@ -105,6 +105,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          # 指定した Check Run 名について、github-actions が作成した最新の run の
+          # conclusion を返す（同名 run が複数あれば完了時刻が最後のものを採用）。
+          latest_check_conclusion() {
+            gh api \
+              "repos/${GH_REPO}/commits/${HEAD_SHA}/check-runs?check_name=$1&per_page=100" \
+              --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.completed_at // .started_at) | last | .conclusion // ""'
+          }
+
           # head SHA に紐づく open PR を解決する
           PR_NUMBER=$(gh api "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
             --jq 'map(select(.state == "open"))[0].number // empty')
@@ -141,9 +149,7 @@ jobs:
           # コードレビューの Check Run が success であることを必須とする
           CODE_REVIEW_CHECK="${{ inputs.code-review-check-name }}"
           if [ -n "$CODE_REVIEW_CHECK" ]; then
-            CR_CONCLUSION=$(gh api \
-              "repos/${GH_REPO}/commits/${HEAD_SHA}/check-runs?check_name=${CODE_REVIEW_CHECK}&per_page=100" \
-              --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.completed_at // .started_at) | last | .conclusion // ""')
+            CR_CONCLUSION=$(latest_check_conclusion "$CODE_REVIEW_CHECK")
             if [ "$CR_CONCLUSION" != "success" ]; then
               echo "${CODE_REVIEW_CHECK} が success ではないためスキップします (conclusion=${CR_CONCLUSION:-未完了})。"
               exit 0
@@ -158,9 +164,7 @@ jobs:
               "repos/${GH_REPO}/actions/workflows/${VRT_WORKFLOW}/runs?head_sha=${HEAD_SHA}&per_page=1" \
               --jq '.total_count')
             if [ "${VRT_RUNS:-0}" -gt 0 ]; then
-              VRT_CONCLUSION=$(gh api \
-                "repos/${GH_REPO}/commits/${HEAD_SHA}/check-runs?check_name=${{ inputs.vrt-check-name }}&per_page=100" \
-                --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.completed_at // .started_at) | last | .conclusion // ""')
+              VRT_CONCLUSION=$(latest_check_conclusion "${{ inputs.vrt-check-name }}")
               echo "PR #${PR_NUMBER}: VRT 対象 (runs=${VRT_RUNS}) / ${{ inputs.vrt-check-name }}=${VRT_CONCLUSION:-未完了}"
               if [ "$VRT_CONCLUSION" != "success" ]; then
                 echo "VRT 対象 PR で ${{ inputs.vrt-check-name }} が success ではないためスキップします。"
