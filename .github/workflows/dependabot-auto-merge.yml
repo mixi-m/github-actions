@@ -96,6 +96,15 @@ jobs:
         with:
           client-id: ${{ inputs.app-client-id }}
           private-key: ${{ secrets.app-private-key }}
+          # 必要権限を明示する（不足していればここで権限名付きで即失敗する）。
+          # - contents:write        … マージ / merge queue 投入
+          # - pull-requests:write   … PR 解決・承認・auto-merge 有効化
+          # - checks:read           … コードレビュー / VRT の Check Run 参照
+          # - actions:read          … VRT ワークフローの起動有無の確認
+          permission-contents: write
+          permission-pull-requests: write
+          permission-checks: read
+          permission-actions: read
 
       - name: Resolve PR and evaluate gates
         env:
