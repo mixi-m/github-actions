@@ -75,7 +75,7 @@ jobs:
           aws-region: ${{ inputs.region }}
 
       - name: Claude AI Review (Comment Only)
-        uses: anthropics/claude-code-action@41ea7642c1436fa0ee57aae58347904b71a5af27 # v1.0.137
+        uses: anthropics/claude-code-action@56fa348258fbcb1aeb8d3954d5799b5991098481 # v1.0.147
         with:
           use_bedrock: true
           # 判定マーカーを機械解析する場合は、専用コメントに確実に残すため
