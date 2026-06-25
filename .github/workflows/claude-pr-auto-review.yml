@@ -54,7 +54,7 @@ jobs:
           aws-region: ${{ inputs.region }}
 
       - name: Claude Automatic Code Review
-        uses: anthropics/claude-code-action@41ea7642c1436fa0ee57aae58347904b71a5af27 # v1.0.137
+        uses: anthropics/claude-code-action@56fa348258fbcb1aeb8d3954d5799b5991098481 # v1.0.147
         with:
           track_progress: true
           use_bedrock: true
