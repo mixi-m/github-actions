@@ -12,7 +12,7 @@ on:
         description: 'The Claude model to use'
         required: false
         type: string
-        default: 'global.anthropic.claude-opus-4-7'
+        default: 'global.anthropic.claude-opus-4-8'
       region:
         description: 'AWS region to use'
         required: false
@@ -94,8 +94,9 @@ jobs:
 
             1. `gh pr view ${{ github.event.pull_request.number }}` で PR 本文・リリースノートを確認する
             2. `gh pr diff ${{ github.event.pull_request.number }}` で変更内容を確認する
-            3. 更新された依存関係をこのリポジトリで実際に使用している箇所を `Grep` や `Read` で確認する
-            4. 破壊的変更と実使用箇所への影響を評価する
+            3. **Elixir プロジェクト（mix.lock が変更されている場合）**: mix.lock の差分から更新された全パッケージを特定する。Dependabot が直接ターゲットにしたパッケージだけでなく、それの依存として連鎖更新されたパッケージ（例: plug 等）も含めて、各パッケージのリリースノート・破壊的変更を個別に調査する
+            4. 更新された依存関係をこのリポジトリで実際に使用している箇所を `Grep` や `Read` で確認する
+            5. 破壊的変更と実使用箇所への影響を評価する
 
             ## レビューコメント
 
@@ -105,7 +106,7 @@ jobs:
             # Dependabot PR レビュー
 
             ## 対象
-            <!-- パッケージ名@旧バージョン → 新バージョン -->
+            <!-- パッケージ名@旧バージョン → 新バージョン（依存として連鎖更新されたパッケージがある場合はすべて列挙） -->
 
             ## サマリー
             <!-- 変更内容の概要 -->
