@@ -24,7 +24,7 @@ on:
         description: 使用する Claude モデル
         required: false
         type: string
-        default: global.anthropic.claude-opus-4-7
+        default: global.anthropic.claude-opus-4-8
       check-name:
         description: publish する Check Run 名（dependabot-auto-merge.yml が参照する）
         required: false
