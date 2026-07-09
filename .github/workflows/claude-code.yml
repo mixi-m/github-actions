@@ -47,7 +47,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ inputs.region }}
 
-      - uses: anthropics/claude-code-action@56fa348258fbcb1aeb8d3954d5799b5991098481 # v1.0.147
+      - uses: anthropics/claude-code-action@a92e7c70a4da9793dc164451d829089dc057a464 # v1.0.159
         with:
           track_progress: true
           use_bedrock: true
