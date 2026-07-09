@@ -62,6 +62,8 @@ jobs:
           # PR review and issue resolution instructions
           # https://github.com/anthropics/claude-code-action/blob/main/examples/pr-review-comprehensive.yml
           prompt: |
+            コメントや PR の説明・コミットメッセージなど GitHub 上に投稿するテキストで、順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
+
             **【レビュー依頼の場合】**
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -76,8 +78,6 @@ jobs:
             - メンテナンス性と可読性
             - アーキテクチャと設計の決定
 
-            コメント内で順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
-
             **【Issue解決の場合】**
             REPO: ${{ github.repository }}
             ISSUE NUMBER: ${{ github.event.issue.number }}
@@ -86,7 +86,6 @@ jobs:
             1. CLAUDE.md に記載されたコーディングガイドラインに従って修正を行ってください。
             2. 修正が完了したら、新しいブランチを切り、PR を作成してください。
             3. PR のタイトルや説明欄には、Issue 番号を明記し、何をどう修正したかを簡潔に記述してください。
-            4. PR の説明やコミットメッセージで順序や件数などを番号で表す際は `#` を付けないでください（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
 
             修正内容が Issue の趣旨から外れている場合や、より良い対応方針があれば、PR 上で相談してください。
             コードの品質を保つためにも、丁寧な対応をお願いします。

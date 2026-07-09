@@ -100,8 +100,8 @@ jobs:
 
             ## レビューコメント
 
-            以下のテンプレートで `gh pr comment ${{ github.event.pull_request.number }} -b` を使ってコメントしてください。
-            コメント内で順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）:
+            コメント内で順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
+            以下のテンプレートで `gh pr comment ${{ github.event.pull_request.number }} -b` を使ってコメントしてください:
 
             ```
             # Dependabot PR レビュー
