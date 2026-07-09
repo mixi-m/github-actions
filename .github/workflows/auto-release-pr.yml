@@ -88,6 +88,9 @@ jobs:
   update:
     name: Update Release PR
     runs-on: ubuntu-slim
+    # pull_request イベントの場合、close されただけで merge されなかったケースを除外する
+    # (workflow_dispatch など pull_request 以外のイベントはそのまま実行する)
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     # 並列実行による二重コメントを防ぐ
     concurrency:
       group: ${{ github.repository }}-release-pr-update
