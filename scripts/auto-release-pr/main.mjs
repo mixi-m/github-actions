@@ -6,6 +6,7 @@
  * GitHub CLI (gh) を使用
  */
 
+import { appendFileSync } from "node:fs";
 import { getConfig } from "./config.mjs";
 import { findOrCreateReleasePr, addLabelToPr } from "./pr-finder.mjs";
 import { analyzeMergedPrs } from "./commit-analyzer.mjs";
@@ -35,6 +36,11 @@ async function main() {
         );
 
         console.log(`\nRelease PR: #${releasePr.number} - ${releasePr.title}`);
+
+        // 後続ジョブ（AI によるタイトル生成）が同じ Release PR を参照できるように出力する
+        if (process.env.GITHUB_OUTPUT) {
+            appendFileSync(process.env.GITHUB_OUTPUT, `pr-number=${releasePr.number}\n`);
+        }
 
         // 2. ラベルを追加
         await addLabelToPr(releasePr.number, config.releasePRLabel);
