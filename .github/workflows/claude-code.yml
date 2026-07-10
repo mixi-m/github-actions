@@ -62,6 +62,8 @@ jobs:
           # PR review and issue resolution instructions
           # https://github.com/anthropics/claude-code-action/blob/main/examples/pr-review-comprehensive.yml
           prompt: |
+            コメントや PR の説明・コミットメッセージなど GitHub 上に投稿するテキストで、順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
+
             **【レビュー依頼の場合】**
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}

@@ -309,6 +309,8 @@ jobs:
             - 要確認の場合: `<!-- vrt-ai-verdict:needs-review -->`
             - 判断不可の場合: `<!-- vrt-ai-verdict:undetermined -->`
 
+            コメント内で順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
+
             既存の `<!-- vrt-ai-review -->` コメントがあれば `gh api -X PATCH` で更新し、なければ `gh pr comment ${{ steps.pr.outputs.number }} -b` で新規投稿してください。
 
             ```
