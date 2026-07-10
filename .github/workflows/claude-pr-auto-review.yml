@@ -67,7 +67,7 @@ jobs:
 
             # Automatic Code Review for PR #${{ github.event.pull_request.number }}
 
-            このリポジトリに `engineering:code-review` スキルが定義されていれば、それを参照してください。
+            このリポジトリに `engineering:review-criteria` スキルが定義されていれば、それを参照してください。
             定義されていない場合は、以下の観点でレビューを行ってください。
 
             ## レビュー観点
