@@ -17,6 +17,16 @@ function extractPrNumber(message) {
 }
 
 /**
+ * PR タイトルが backport PR かどうかを判定
+ * (例: "backport #4904")
+ * @param {string} title - PR タイトル
+ * @returns {boolean} backport PR の場合 true
+ */
+export function isBackportPr(title) {
+    return /^backport\b/i.test((title || "").trim());
+}
+
+/**
  * PR のコミットを解析し、マージされた PR の情報を取得
  * @param {number} prNumber - 解析対象の PR 番号
  * @returns {Promise<Array<{number: number, title: string}>>} マージされた PR の配列
