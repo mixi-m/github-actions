@@ -7,11 +7,22 @@
  */
 
 import { appendFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { getConfig } from "./config.mjs";
 import { findOrCreateReleasePr, addLabelToPr } from "./pr-finder.mjs";
-import { analyzeMergedPrs } from "./commit-analyzer.mjs";
+import { analyzeMergedPrs, isBackportPr } from "./commit-analyzer.mjs";
 import { generatePrBody } from "./body-generator.mjs";
 import { updatePrBody } from "./pr-updater.mjs";
+
+/**
+ * GITHUB_OUTPUT に複数行の値を書き込む
+ * @param {string} name - 出力名
+ * @param {string} value - 出力値（複数行可）
+ */
+function appendMultilineOutput(name, value) {
+    const delimiter = randomUUID();
+    appendFileSync(process.env.GITHUB_OUTPUT, `${name}<<${delimiter}\n${value}\n${delimiter}\n`);
+}
 
 async function main() {
     try {
@@ -47,6 +58,17 @@ async function main() {
 
         // 3. マージされた PR を解析
         const mergedPrs = await analyzeMergedPrs(releasePr.number);
+
+        // AI によるタイトル生成向けに、backport PR を除いた一覧を出力する
+        // (backport PR のタイトルはリリース内容の要約として意味を持たないノイズのため)
+        if (process.env.GITHUB_OUTPUT) {
+            const titlePrs = mergedPrs.filter((pr) => !isBackportPr(pr.title));
+            const titleSummary =
+                titlePrs.length > 0
+                    ? titlePrs.map((pr) => `- #${pr.number}: ${pr.title}`).join("\n")
+                    : "(実質的な変更なし)";
+            appendMultilineOutput("title-summary", titleSummary);
+        }
 
         // 4. 新しい PR body を生成
         const newBody = generatePrBody(mergedPrs, config.bodyTemplate);
