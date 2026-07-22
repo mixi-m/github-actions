@@ -94,9 +94,9 @@ jobs:
 
             1. `gh pr view ${{ github.event.pull_request.number }}` で PR 本文・リリースノートを確認する
             2. `gh pr diff ${{ github.event.pull_request.number }}` で変更内容を確認する
-            3. **Elixir プロジェクト（mix.lock が変更されている場合）**: mix.lock の差分から更新された全パッケージを特定する。Dependabot が直接ターゲットにしたパッケージだけでなく、それの依存として連鎖更新されたパッケージ（例: plug 等）も含めて、各パッケージのリリースノート・破壊的変更を個別に調査する
-            4. 更新された依存関係をこのリポジトリで実際に使用している箇所を `Grep` や `Read` で確認する
-            5. 破壊的変更と実使用箇所への影響を評価する
+            3. **Elixir プロジェクト（mix.lock が変更されている場合）**: mix.lock の差分から更新された全パッケージ（Dependabot が直接ターゲットにしたものだけでなく、依存として連鎖更新されたパッケージも含む）を特定する
+            4. 特定した各パッケージをこのリポジトリで実際に使用している箇所を `Grep` や `Read` で確認する
+            5. 実使用箇所があるパッケージについてのみ、`WebFetch` でリリースノートを確認し、破壊的変更の有無と実使用箇所への影響を評価する（実使用箇所がないパッケージは「影響なし」として個別調査は省略してよい）
 
             ## レビューコメント
 
@@ -128,8 +128,7 @@ jobs:
             このPRは承認しないでください。コメントのみ残してください。
           claude_args: |
             --model ${{ inputs.model }}
-            --allowedTools "Read,Glob,Grep,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
-            --max-turns 20
+            --allowedTools "Read,Glob,Grep,WebFetch,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
 
       # publish-check-run が true のときのみ、レビュー判定を Check Run として
       # publish する。判定はコメントに埋め込まれた検証マーカーから導出する。
