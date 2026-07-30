@@ -101,7 +101,9 @@ jobs:
             ## レビューコメント
 
             コメント内で順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
-            以下のテンプレートで `gh pr comment ${{ github.event.pull_request.number }} -b` を使ってコメントしてください:
+            以下のテンプレートの内容を Write ツールでファイル（例: `/tmp/dependabot-review-comment.md`）に書き出してから、
+            `gh pr comment ${{ github.event.pull_request.number }} --body-file <そのファイルパス>` で投稿してください。
+            heredoc やシェルのパイプ経由での投稿（`gh pr comment ... -b "$(cat <<EOF ... )"` 等）は使わないこと。
 
             ```
             # Dependabot PR レビュー
@@ -128,7 +130,7 @@ jobs:
             このPRは承認しないでください。コメントのみ残してください。
           claude_args: |
             --model ${{ inputs.model }}
-            --allowedTools "Read,Glob,Grep,WebFetch,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Read,Write,Glob,Grep,WebFetch,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
 
       # publish-check-run が true のときのみ、レビュー判定を Check Run として
       # publish する。判定はコメントに埋め込まれた検証マーカーから導出する。
