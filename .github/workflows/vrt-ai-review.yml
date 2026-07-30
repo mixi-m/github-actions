@@ -96,13 +96,13 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 1
 
-      - name: Download VRT diff images from reg_actions branch
+      - name: Download VRT diff/actual/expected images from reg_actions branch
         if: steps.pr.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p vrt-reg/0_diff
+          mkdir -p vrt-reg/0_diff vrt-reg/1_actual vrt-reg/2_expected
 
           # VRT_RUN_ID にマッチするディレクトリを reg_actions ブランチから検索する
           # （RUN_DATE で構築すると UTC 0時跨ぎで日付がずれるため run ID で検索）
@@ -115,29 +115,36 @@ jobs:
             exit 0
           fi
 
-          echo "Looking for diff images at: ${PREFIX}/diff (branch: reg_actions)"
-
-          # diff ディレクトリからファイルのみのパスを取得（サブディレクトリは除外）
-          FILES=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PREFIX}/diff?ref=reg_actions" \
-            --jq '.[] | select(.type == "file") | .path' 2>/dev/null || echo "")
-
-          if [ -z "$FILES" ]; then
-            echo "No diff files found in reg_actions branch at ${PREFIX}/diff"
-            exit 0
-          fi
-
-          echo "$FILES" | while read -r path; do
-            filename=$(basename "$path")
-            echo "Downloading: $filename"
-            tmp=$(mktemp)
-            if gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=reg_actions" \
-              --header "Accept: application/vnd.github.raw" > "$tmp"; then
-              mv "$tmp" "vrt-reg/0_diff/${filename}"
-            else
-              rm -f "$tmp"
-              echo "Failed to download: $filename" >&2
+          # reg-suit のレポート構造は {PREFIX}/diff, {PREFIX}/actual, {PREFIX}/expected。
+          # diff にあるファイルと同じファイル名（拡張子は異なりうる）の actual/expected を
+          # 突き合わせてダウンロードし、AI が実際に見た目を比較できるようにする。
+          download_dir() {
+            local subdir="$1"
+            local outdir="$2"
+            local files
+            files=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PREFIX}/${subdir}?ref=reg_actions" \
+              --jq '.[] | select(.type == "file") | .path' 2>/dev/null || echo "")
+            if [ -z "$files" ]; then
+              echo "No files found in reg_actions branch at ${PREFIX}/${subdir}"
+              return 0
             fi
-          done
+            echo "$files" | while read -r path; do
+              filename=$(basename "$path")
+              echo "Downloading (${subdir}): $filename"
+              tmp=$(mktemp)
+              if gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=reg_actions" \
+                --header "Accept: application/vnd.github.raw" > "$tmp"; then
+                mv "$tmp" "${outdir}/${filename}"
+              else
+                rm -f "$tmp"
+                echo "Failed to download: $filename" >&2
+              fi
+            done
+          }
+
+          download_dir diff vrt-reg/0_diff
+          download_dir actual vrt-reg/1_actual
+          download_dir expected vrt-reg/2_expected
         continue-on-error: true
 
       - name: Collect VRT review context
@@ -172,11 +179,14 @@ jobs:
           {
             echo "# VRT artifact files"
             echo
-            if [ -d vrt-reg/0_diff ]; then
-              echo "## 0_diff"
-              find vrt-reg/0_diff -type f | sort
-              echo
-            else
+            for dir in vrt-reg/0_diff vrt-reg/1_actual vrt-reg/2_expected; do
+              if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
+                echo "## ${dir}"
+                find "$dir" -type f | sort
+                echo
+              fi
+            done
+            if [ -z "$(ls -A vrt-reg/0_diff 2>/dev/null)" ]; then
               echo "VRT diff images were not downloaded."
             fi
           } > vrt-ai-context/vrt-artifact-files.md
@@ -195,7 +205,9 @@ jobs:
             echo "- vrt-ai-context/pr.diff"
             echo "- vrt-ai-context/vrt-comments.jsonl"
             echo "- vrt-ai-context/vrt-artifact-files.md"
-            echo "- vrt-reg/0_diff/ (diff images from reg_actions branch, when available)"
+            echo "- vrt-reg/0_diff/ (diff画像。差分がハイライトされた画像。reg_actions ブランチから取得、あれば)"
+            echo "- vrt-reg/1_actual/ (actual画像。変更後のスクリーンショット。0_diff と同名ファイルが対応)"
+            echo "- vrt-reg/2_expected/ (expected画像。変更前=ベースラインのスクリーンショット。0_diff と同名ファイルが対応)"
           } > vrt-ai-context/README.md
 
           HAS_ARTIFACT_CHANGES=false
@@ -293,13 +305,16 @@ jobs:
             - `vrt-ai-context/pr.diff`
             - `vrt-ai-context/vrt-comments.jsonl`
             - `vrt-ai-context/vrt-artifact-files.md`
-            - `vrt-reg/0_diff/` 配下の差分画像（reg_actions ブランチから取得）
+            - `vrt-reg/0_diff/` 配下の差分ハイライト画像（reg_actions ブランチから取得、あれば）
+            - `vrt-reg/1_actual/` 配下の変更後スクリーンショット（0_diff と同名ファイルが対応）
+            - `vrt-reg/2_expected/` 配下の変更前(ベースライン)スクリーンショット（0_diff と同名ファイルが対応）
 
             ## 評価手順
             1. PR の本文とコード diff から意図された変更を把握する
-            2. reg-actions のコメントと artifact から視覚差分の対象・件数・画像を確認する
-            3. VRT 差分が PR の変更内容と整合しているか、不自然な崩れや意図しない副作用がないか評価する
-            4. 画像を直接確認できない場合は、その制約を明記し、ファイル名・report・PR diff から判断できる範囲で評価する
+            2. reg-actions のコメントと artifact から視覚差分の対象・件数を確認する
+            3. 差分が検出された各ファイルについて、`Read` ツールで `1_actual` と `2_expected` の同名画像を両方直接見て見比べる（`0_diff` のハイライト画像だけで判断しないこと）。実際に画像を比較した上で、レイアウト崩れ等の実質的な差分か、ローディング中の表示・アニメーションの一コマ・アンチエイリアシング等の無関係なフレーキーな差分かを判定する
+            4. VRT 差分が PR の変更内容(diffの変更範囲)と整合しているか、不自然な崩れや意図しない副作用がないか評価する
+            5. `1_actual` / `2_expected` の画像が取得できずファイル自体を直接確認できない場合に限り、その制約を明記し、ファイル名・report・PR diff から判断できる範囲で評価する（画像が揃っているのに比較せず「確認不可」と判定しないこと）
 
             ## コメント形式
             コメント本文の先頭には必ず `<!-- vrt-ai-review -->` を含めてください。
