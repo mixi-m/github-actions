@@ -287,7 +287,7 @@ jobs:
           steps.context.outputs.pr_open == 'true' &&
           steps.context.outputs.is_draft == 'false' &&
           steps.context.outputs.has_changes == 'true'
-        uses: anthropics/claude-code-action@700e7f8316990de46bed556429765647af760efc # v1.0.176
+        uses: anthropics/claude-code-action@e0cf66d1d257526b5d07f141838c338921cb8455 # v1.0.182
         with:
           use_bedrock: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
