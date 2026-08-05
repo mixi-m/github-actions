@@ -48,3 +48,8 @@ jobs:
         with:
           project-name: ${{ inputs.codebuild_project_name }}
           buildspec-override: ${{ inputs.codebuild_buildspec }}
+          # デフォルトでは GITHUB_SHA (pull_request_review イベントでは ephemeral な merge commit) が
+          # CodeBuild の sourceVersion として渡される。base ブランチの更新で merge commit が
+          # 再計算されると古い SHA が無効になり CodeBuild 側の checkout が失敗するため、
+          # checkout の ref と同様に PR HEAD の SHA を明示的に指定する。
+          source-version-override: ${{ github.event_name == 'pull_request_review' && github.event.pull_request.head.sha || '' }}
