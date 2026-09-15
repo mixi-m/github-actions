@@ -1,5 +1,7 @@
 #!/usr/bin/env zx
 
+import { $ } from "zx";
+
 /**
  * 設定管理モジュール
  * 環境変数から設定を読み込む
@@ -125,6 +127,43 @@ export function getCdkContext() {
 }
 
 /**
+ * PR コメントの詳細度を取得
+ * "full" | "summary" 以外の値、または未指定の場合は既存動作を維持するため "full" にフォールバックする
+ * @returns {"full"|"summary"} コメントモード
+ */
+export function getCommentMode() {
+    return process.env.COMMENT_MODE === "summary" ? "summary" : "full";
+}
+
+/**
+ * 現在の Matrix Job（環境ごと）の Actions ログ URL を取得する
+ * summary モードでコメントから省略した詳細への導線に使う。
+ * 取得に失敗した場合は run 全体の URL にフォールバックする（diff 自体は失敗させない）
+ * @returns {Promise<string>} ジョブのログ URL
+ */
+export async function getGitHubJobUrl() {
+    const fallback = getGitHubActionUrl();
+    const runId = process.env.GITHUB_RUN_ID;
+    if (!runId) {
+        return fallback;
+    }
+
+    try {
+        const repo = getGitHubRepository();
+        const result = await $`gh api repos/${repo}/actions/runs/${runId}/jobs`;
+        const { jobs } = JSON.parse(result.stdout);
+
+        const envName = process.env.ENV_NAME;
+        const job = envName ? jobs.find((j) => j.name.includes(envName)) : undefined;
+
+        return job?.html_url ?? fallback;
+    } catch (error) {
+        console.log(`Failed to resolve job URL, falling back to run URL: ${error.message}`);
+        return fallback;
+    }
+}
+
+/**
  * すべての設定を取得
  * @returns {object} 設定オブジェクト
  */
@@ -137,5 +176,6 @@ export function getConfig() {
         prNumber: getPrNumber(),
         gitHubRepository: getGitHubRepository(),
         gitHubActionUrl: getGitHubActionUrl(),
+        commentMode: getCommentMode(),
     };
 }

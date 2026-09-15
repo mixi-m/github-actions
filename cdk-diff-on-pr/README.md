@@ -67,6 +67,7 @@ jobs:
 | `working_directory` | ❌ | `.` | CDK プロジェクトのディレクトリ |
 | `drift_detection_timeout_sec` | ❌ | `300` | ドリフト検知のタイムアウト（秒） |
 | `cdk_context` | ❌ | `''` | CDK context パラメータのキー（例: `env`）。指定すると `--context <key>=<name>` が追加される |
+| `comment_mode` | ❌ | `full` | PR コメントの詳細度。`full` / `summary`。詳細は下記「コメントの詳細度（comment_mode）」を参照 |
 
 ## 前提条件
 
@@ -105,6 +106,31 @@ jobs:
   - 🚨 MODIFIED （実際のリソースと CFn テンプレートに差異がある）
   - ✅ IN_SYNC（ドリフトがない）
   - 空欄（未作成のリソースなど）
+
+## コメントの詳細度（comment_mode）
+
+Stack 数が多いプロジェクトでは、`full`（既定）のコメントが数万文字に達し、GitHub のコメント上限（65536 文字）に近づく、あるいは超えて投稿自体が失敗することがあります。`comment_mode: summary` を指定すると、情報量を落とさずにコメントを大幅に短縮できます。
+
+```yaml
+with:
+  aws_accounts: '...'
+  aws_role_name: GitHubActionsCdkRole
+  comment_mode: summary
+```
+
+### full（既定）
+
+現行どおりの挙動です。全 Stack が個別のセクションを持ち、差分の有無に関わらず `cdk diff` の結果とリソース一覧（Drift 込み）を展開表示します。
+
+### summary
+
+- コメント冒頭に全 Stack 1 行ずつのサマリ表（状態 / 変更内訳 / Drift）を追加します
+- 詳細セクションを展開するのは「差分があった Stack」または「Drift が `MODIFIED` の Stack」のみです。差分もドリフトも無い Stack はサマリ表の 1 行だけになります
+- 展開したセクション内のリソース表も、実際に変更のあった行と Drift `MODIFIED` の行だけに絞ります。省略した行数は注記されます
+- 省略した内容（全 Stack・全リソースの差分と Drift）は、コメントからではなく本 Matrix Job の Actions ログ（`Stack <name> diff` / `Stack <name> resources` グループ）に必ず出力されます。コメントには当該ログへのリンクを含みます
+- コメントが 65536 文字の上限に達した場合は投稿を失敗させず、安全な位置で切り詰めて投稿します（この場合もログには完全な内容が残ります）
+
+`full` の出力仕様は変更していないため、`comment_mode` を指定しない既存の利用者への影響はありません。
 
 ## トラブルシューティング
 

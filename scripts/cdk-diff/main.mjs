@@ -4,7 +4,7 @@
  * CDK Stack Diff を PR にコメントするメインスクリプト
  */
 
-import { getConfig, getEnvironmentAlias } from "./config.mjs";
+import { getConfig, getEnvironmentAlias, getGitHubJobUrl } from "./config.mjs";
 import { getCdkTemplates } from "./cdk-template.mjs";
 import { getCfnTemplates, getCfnStackResources } from "./cfn-template.mjs";
 import { calculateDiff } from "./diff-calculator.mjs";
@@ -41,11 +41,15 @@ async function main() {
         // 5. CloudFormation 上のスタックリソースを取得
         const cfnStackResourcesSummaries = await getCfnStackResources(cfnStackNames);
 
+        // summary モードではコメントから省いた詳細をログで参照できるよう、
+        // run 全体ではなく本 Matrix Job のログ URL を解決する（失敗時は run URL にフォールバック）
+        const gitHubActionUrl = config.commentMode === "summary" ? await getGitHubJobUrl() : config.gitHubActionUrl;
+
         // 6. PR コメントを生成
         const comment = formatComment({
             environmentAlias,
             awsRegion: config.awsRegion,
-            gitHubActionUrl: config.gitHubActionUrl,
+            gitHubActionUrl,
             stackNames,
             cfnStackNames,
             templateDiff,
@@ -55,6 +59,7 @@ async function main() {
             editedStackCount,
             stackDriftDetected,
             filteredChangesCounts,
+            commentMode: config.commentMode,
         });
 
         // 7. PR にコメントを投稿
