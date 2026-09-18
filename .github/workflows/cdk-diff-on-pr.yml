@@ -36,11 +36,22 @@ on:
         required: false
         type: string
         default: ''
+      comment_mode:
+        description: >
+          PR comment verbosity. "full" (default) keeps the current behavior: every stack gets its own
+          section, including a full resource table for stacks with no changes. "summary" adds a
+          one-line-per-stack table at the top and only expands stacks that have a diff or a MODIFIED
+          drift; everything else (all stacks, all resources, per-resource drift) is still written in
+          full to the job log.
+        required: false
+        type: string
+        default: 'full'
 
 permissions:
   id-token: write
   contents: read
   pull-requests: write
+  actions: read # summary モードでコメントから省いた詳細の参照先（本 Matrix Job のログ URL）を解決するため
 
 jobs:
   diff:
@@ -93,6 +104,7 @@ jobs:
           DRIFT_DETECTION_TIMEOUT_SEC: ${{ inputs.drift_detection_timeout_sec }}
           ENV_NAME: ${{ matrix.aws_account.name }}
           CDK_CONTEXT: ${{ inputs.cdk_context }}
+          COMMENT_MODE: ${{ inputs.comment_mode }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
