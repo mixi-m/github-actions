@@ -51,7 +51,6 @@ permissions:
   id-token: write
   contents: read
   pull-requests: write
-  actions: read # summary モードでコメントから省いた詳細の参照先（本 Matrix Job のログ URL）を解決するため
 
 jobs:
   diff:
