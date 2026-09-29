@@ -98,6 +98,24 @@ jobs:
             4. 特定した各パッケージをこのリポジトリで実際に使用している箇所を `Grep` や `Read` で確認する
             5. 実使用箇所があるパッケージについてのみ、`WebFetch` でリリースノートを確認し、破壊的変更の有無と実使用箇所への影響を評価する（実使用箇所がないパッケージは「影響なし」として個別調査は省略してよい）
 
+            ## dependabot ignore 設定の確認
+
+            Dependabot の security update は `.github/dependabot.yml` の `ignore` 設定を無視して作成されるため、
+            意図的に更新を抑制しているパッケージの PR が作成されることがあります。
+            そのため、次の手順で `ignore` に該当するかを必ず確認してください。
+
+            1. `Read` で `.github/dependabot.yml` を読む（存在しない、または `ignore` が無い場合は「該当なし」として次へ進む）
+            2. PR の更新対象（ecosystem・ディレクトリ・パッケージ名・旧バージョン → 新バージョン）を、
+               `updates` のうち `package-ecosystem` と `directory` が一致するエントリの `ignore` と照合する
+               - `dependency-name` はワイルドカード（例: `@chakra-ui/*`）を考慮して一致判定する
+               - `update-types` がある場合は、今回のバージョン差分（major / minor / patch）が含まれるときのみ該当とする。無い場合は全バージョンが対象
+               - `versions` がある場合は、新バージョンがその範囲に含まれるときのみ該当とする
+               - グループ更新 PR の場合は、含まれるすべてのパッケージについて照合する
+            3. 1 つでも該当する場合は「ignore 対象」として扱い、コメントの「## dependabot ignore 設定」セクションに
+               該当したパッケージ・ルール・設定ファイル上の理由コメント（あれば）・security update に起因するかを記載する
+            4. ignore 対象の PR は、破壊的変更や実使用箇所への影響の有無にかかわらず、承認可の判定にしてはならない
+               （security 修正を含む場合も同様。取り込むか、別途パッチ等での対応が必要かは人間が判断する）
+
             ## レビューコメント
 
             コメント内で順序や件数などを番号で表す際は `#` を付けないこと（`#1` や `#123` が GitHub 上で無関係な Issue/PR へのリンクとして解釈されるため）。
@@ -122,10 +140,14 @@ jobs:
             <!-- 影響がある場合: ファイルパス:行番号、使用対象、変更内容、影響評価 -->
             <!-- 影響がない場合: 「影響なし」 -->
 
+            ## dependabot ignore 設定
+            <!-- 該当あり: パッケージ・該当した ignore ルール・理由コメント・security update か。人間の判断が必要な旨 -->
+            <!-- 該当なし: 「該当なし」 -->
+
             ## 推奨アクション
             <!-- レビュアーへの推奨事項 -->
             ```
-            ${{ (inputs.emit-verdict || inputs.publish-check-run) && 'なお自動マージ判定のため、このレビューコメントの先頭に必ず次の HTML コメント行を含めてください（画面には表示されません）。1行目: <!-- dependabot-code-review -->。続けて、破壊的変更がなく実使用箇所への悪影響もない場合は <!-- dependabot-code-verdict:approved -->、いずれかに該当する/確認できない場合は <!-- dependabot-code-verdict:changes-requested --> を付与してください。' || '' }}
+            ${{ (inputs.emit-verdict || inputs.publish-check-run) && 'なお自動マージ判定のため、このレビューコメントの先頭に必ず次の HTML コメント行を含めてください（画面には表示されません）。1行目: <!-- dependabot-code-review -->。続けて、dependabot ignore 設定に該当せず、かつ破壊的変更がなく実使用箇所への悪影響もない場合のみ <!-- dependabot-code-verdict:approved -->、dependabot ignore 設定に該当する場合、または破壊的変更・悪影響がある/確認できない場合は <!-- dependabot-code-verdict:changes-requested --> を付与してください。' || '' }}
 
             このPRは承認しないでください。コメントのみ残してください。
           claude_args: |
