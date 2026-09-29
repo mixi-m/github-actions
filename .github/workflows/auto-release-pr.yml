@@ -75,6 +75,14 @@ on:
         required: false
         type: string
         default: 'ap-northeast-1'
+      titleAllowedBots:
+        description: |
+          Comma-separated list of bot names allowed to trigger title generation.
+          It is passed to `allowed_bots` of claude-code-action.
+          Bots that are not listed here are rejected.
+        required: false
+        type: string
+        default: ''
     secrets:
       AWS_ROLE_TO_ASSUME:
         description: 'Required when `generateTitleWithAI` is true.'
@@ -163,6 +171,7 @@ jobs:
         with:
           track_progress: false
           use_bedrock: true
+          allowed_bots: ${{ inputs.titleAllowedBots }}
           claude_args: |
             --model ${{ inputs.titleModel }}
             --json-schema '{"type":"object","properties":{"title":{"type":"string","description":"生成したリリースPRのタイトル"}},"required":["title"],"additionalProperties":false}'
@@ -196,7 +205,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_PR_NUMBER: ${{ needs.update.outputs.pr-number }}
-          NEW_TITLE: ${{ fromJSON(steps.generate-title.outputs.structured_output).title }}
+          NEW_TITLE: ${{ fromJSON(steps.generate-title.outputs.structured_output || '{}').title }}
         run: |
           if [ -z "$NEW_TITLE" ]; then
             echo "生成されたタイトルが空のためスキップします" >&2
