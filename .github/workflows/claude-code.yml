@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: 'ap-northeast-1'
+      show-full-output:
+        description: 'Pass show_full_output to claude-code-action (prints full Claude output to logs; may expose sensitive data)'
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ROLE_TO_ASSUME:
         required: true
@@ -51,6 +56,7 @@ jobs:
         with:
           track_progress: true
           use_bedrock: true
+          show_full_output: ${{ inputs.show-full-output }}
 
           additional_permissions: |
             actions: read

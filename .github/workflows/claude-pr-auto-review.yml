@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: 'master'
+      show-full-output:
+        description: 'Pass show_full_output to claude-code-action (prints full Claude output to logs; may expose sensitive data)'
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ROLE_TO_ASSUME:
         required: true
@@ -58,6 +63,7 @@ jobs:
         with:
           track_progress: true
           use_bedrock: true
+          show_full_output: ${{ inputs.show-full-output }}
           claude_args: |
             --model ${{ inputs.model }}
             --allowedTools "Agent,Skill,Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh pr review:*)"

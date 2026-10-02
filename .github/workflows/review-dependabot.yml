@@ -38,6 +38,11 @@ on:
         required: false
         type: string
         default: 'dependabot-code-review'
+      show-full-output:
+        description: 'Pass show_full_output to claude-code-action (prints full Claude output to logs; may expose sensitive data)'
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ROLE_TO_ASSUME:
         required: true
@@ -78,6 +83,7 @@ jobs:
         uses: anthropics/claude-code-action@4036a180cf690f49529f5d8c79c998855287f590 # v1.0.230
         with:
           use_bedrock: true
+          show_full_output: ${{ inputs.show-full-output }}
           # 判定マーカーを機械解析する場合は、専用コメントに確実に残すため
           # track_progress を無効化する（既定では従来通り有効）。
           track_progress: ${{ !(inputs.emit-verdict || inputs.publish-check-run) }}

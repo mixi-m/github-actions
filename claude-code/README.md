@@ -35,6 +35,7 @@ permissions:
 | `runs-on` | | `ubuntu-latest` | ジョブを実行するマシンの種類 |
 | `model` | | `global.anthropic.claude-sonnet-5-5` | 使用するClaudeモデル |
 | `region` | | `ap-northeast-1` | 使用するAWSリージョン |
+| `show-full-output` | | `false` | claude-code-action の `show_full_output` に渡す。Claude の出力全文をログに出力する（機密情報が含まれる可能性があるため、デバッグ時のみ有効化すること） |
 
 ## Secrets
 | パラメータ | Required | |
@@ -86,6 +87,7 @@ jobs:
       runs-on: 'ubuntu-latest'  # オプション、デフォルト: ubuntu-latest
       model: 'global.anthropic.claude-sonnet-5-5'  # オプション
       region: 'ap-northeast-1'  # オプション、デフォルト: ap-northeast-1
+      show-full-output: false  # オプション、デフォルト: false
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 ```
