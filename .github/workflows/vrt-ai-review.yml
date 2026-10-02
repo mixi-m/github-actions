@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: ap-northeast-1
+      show-full-output:
+        description: 'Pass show_full_output to claude-code-action (prints full Claude output to logs; may expose sensitive data)'
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ROLE_TO_ASSUME:
         required: true
@@ -290,6 +295,7 @@ jobs:
         uses: anthropics/claude-code-action@4036a180cf690f49529f5d8c79c998855287f590 # v1.0.230
         with:
           use_bedrock: true
+          show_full_output: ${{ inputs.show-full-output }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_bots: "*"
           classify_inline_comments: false
