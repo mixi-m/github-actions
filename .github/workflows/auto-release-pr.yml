@@ -69,7 +69,7 @@ on:
         description: 'The Claude model to use for title generation (Bedrock model ID).'
         required: false
         type: string
-        default: 'global.anthropic.claude-sonnet-5'
+        default: 'global.anthropic.claude-sonnet-5-5'
       titleRegion:
         description: 'AWS region to use for title generation.'
         required: false
