@@ -55,12 +55,16 @@ runs:
           # github-actions[bot] が投稿した判定コメントの検証マーカーで判定する。
           # マーカーが見つからなければ neutral（＝非 success）にフォールバックする。
           CONCLUSION=neutral
-          BODY=$(gh api --paginate \
+          # 本文は複数行になるため tail で本文を切らず、最新コメントの ID だけを取り出してから本文を取得する。
+          COMMENT_ID=$(gh api --paginate \
             "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body // \"\" | contains(\"${MARKER}\"))) | .body // \"\"" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body // \"\" | contains(\"${MARKER}\"))) | .id" \
             | tail -n 1)
-          if [[ "${BODY}" == *"${OK_MARKER}"* ]]; then
-            CONCLUSION=success
+          if [ -n "$COMMENT_ID" ]; then
+            BODY=$(gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" --jq '.body // ""')
+            if [[ "${BODY}" == *"${OK_MARKER}"* ]]; then
+              CONCLUSION=success
+            fi
           fi
         fi
 
