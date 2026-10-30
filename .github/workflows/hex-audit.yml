@@ -1,0 +1,83 @@
+name: Hex Audit Report
+
+# mix hex.audit の結果から、hex-audit ラベルの Issue を1本だけ起票・更新・close する。
+#
+# 呼び出し元は、同じワークフローの先行ジョブで mix hex.audit を実行し、
+# 出力 (audit.txt) と終了コード (code) を artifact として渡す。
+# 依存の取得に必要な SSH 鍵は呼び出し元のジョブだけで使い、このワークフローには渡さない。
+#
+# 起票済みの脆弱性は、呼び出し元の無視リスト (ignore-file) に advisory ID 単位で登録すると、
+# 検出結果から除かれる。各エントリには追跡している Issue (1件以上) が必須。
+#
+# 呼び出し元ジョブには issues: write の付与が必要。
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'audit.txt (mix hex.audit の出力) と code (終了コード) を含む artifact の名前'
+        required: true
+        type: string
+      ignore-file:
+        description: '無視リストの yaml のパス (呼び出し元リポジトリ内)'
+        required: false
+        type: string
+        default: '.github/hex-audit-ignore.yml'
+      runs-on:
+        description: 'The type of machine to run the job on'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    name: Report hex audit
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 10
+    # 同時に実行すると Issue を重複して作成するおそれがあるため、実行を直列にする
+    concurrency:
+      group: hex-audit-${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      IGNORE_FILE: ${{ inputs.ignore-file }}
+    steps:
+      # 呼び出し元リポジトリから、無視リストだけを取得する
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: ${{ inputs.ignore-file }}
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout github-actions repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: mixi-m/github-actions
+          path: .github-actions-repo
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/hex-audit
+
+      - name: Download audit result
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ runner.temp }}/hex-audit-input
+
+      - name: Apply ignore list
+        id: filter
+        env:
+          AUDIT_DIR: ${{ runner.temp }}/hex-audit-input
+        run: bash "${{ github.workspace }}/.github-actions-repo/scripts/hex-audit/filter.sh"
+
+      - name: Create, update or close issue
+        env:
+          AUDIT_CODE: ${{ steps.filter.outputs.code }}
+        run: bash "${{ github.workspace }}/.github-actions-repo/scripts/hex-audit/report.sh"
